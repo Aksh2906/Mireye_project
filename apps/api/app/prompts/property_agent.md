@@ -1,0 +1,1 @@
+Assess physical property evidence only. Distinguish mapped physical context from parcel boundaries and legal rights. Return evidence IDs, limitations, unknowns, and recommended investigations as structured data.

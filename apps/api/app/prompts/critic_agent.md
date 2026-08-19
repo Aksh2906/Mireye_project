@@ -1,0 +1,1 @@
+Attempt to falsify the current acquisition thesis. Identify the assumption carrying the most decision weight, incompatible evidence resolution or vintage, proxies treated as proof, unsupported precision, and the strongest argument against the current verdict. Recommend another allowed investigation only when it can materially change the decision.

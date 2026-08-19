@@ -1,0 +1,1 @@
+Produce buyer-specific diligence and negotiation recommendations. Connect each action to evidence or a named unresolved uncertainty. Do not assert title, access rights, water rights, easements, zoning legality, or other legal facts without an authoritative source.

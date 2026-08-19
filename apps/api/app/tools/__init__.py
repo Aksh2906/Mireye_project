@@ -1,0 +1,1 @@
+"""Validated agent tool definitions."""

@@ -1,0 +1,22 @@
+[
+  {"case_id":"case_001","scenario":"Strong property; claims supported","acres":100,"asking_price":700000,"benchmark_per_acre":7200,"material_contradiction":false,"expected_decision":"ACQUIRE"},
+  {"case_id":"case_002","scenario":"Exaggerated tillable acreage","acres":100,"asking_price":900000,"benchmark_per_acre":7000,"material_contradiction":true,"expected_decision":"DO_NOT_ACQUIRE"},
+  {"case_id":"case_003","scenario":"Flood risk hidden by listing","acres":80,"asking_price":560000,"benchmark_per_acre":7200,"material_contradiction":true,"expected_decision":"DO_NOT_ACQUIRE"},
+  {"case_id":"case_004","scenario":"Irrigation unsupported","acres":120,"asking_price":1100000,"benchmark_per_acre":7500,"material_contradiction":true,"expected_decision":"DO_NOT_ACQUIRE"},
+  {"case_id":"case_005","scenario":"Historical agricultural continuity","acres":90,"asking_price":600000,"benchmark_per_acre":7100,"material_contradiction":false,"expected_decision":"ACQUIRE"},
+  {"case_id":"case_006","scenario":"Land-use drift","acres":90,"asking_price":700000,"benchmark_per_acre":6900,"material_contradiction":true,"expected_decision":"DO_NOT_ACQUIRE"},
+  {"case_id":"case_007","scenario":"Soil drainage conflict","acres":70,"asking_price":500000,"benchmark_per_acre":7300,"material_contradiction":true,"expected_decision":"DO_NOT_ACQUIRE"},
+  {"case_id":"case_008","scenario":"Good but overpriced","acres":100,"asking_price":1000000,"benchmark_per_acre":7000,"material_contradiction":false,"expected_decision":"DO_NOT_ACQUIRE"},
+  {"case_id":"case_009","scenario":"Poor but attractively priced","acres":100,"asking_price":500000,"benchmark_per_acre":6500,"material_contradiction":false,"expected_decision":"ACQUIRE"},
+  {"case_id":"case_010","scenario":"Strong with unresolved critical evidence","acres":100,"asking_price":650000,"benchmark_per_acre":null,"material_contradiction":false,"expected_decision":"DO_NOT_ACQUIRE"},
+  {"case_id":"case_011","scenario":"Resolution-driven false contradiction","acres":80,"asking_price":530000,"benchmark_per_acre":7000,"material_contradiction":false,"expected_decision":"ACQUIRE"},
+  {"case_id":"case_012","scenario":"Missing listing information","acres":85,"asking_price":null,"benchmark_per_acre":7000,"material_contradiction":false,"expected_decision":"DO_NOT_ACQUIRE"},
+  {"case_id":"case_013","scenario":"Invalid address","acres":null,"asking_price":700000,"benchmark_per_acre":7000,"material_contradiction":false,"expected_decision":"DO_NOT_ACQUIRE"},
+  {"case_id":"case_014","scenario":"External source unavailable","acres":100,"asking_price":700000,"benchmark_per_acre":null,"material_contradiction":false,"expected_decision":"DO_NOT_ACQUIRE"},
+  {"case_id":"case_015","scenario":"Conflicting agricultural evidence","acres":95,"asking_price":700000,"benchmark_per_acre":7100,"material_contradiction":true,"expected_decision":"DO_NOT_ACQUIRE"},
+  {"case_id":"case_016","scenario":"Buyer preference changes verdict","acres":100,"asking_price":650000,"benchmark_per_acre":7000,"material_contradiction":true,"expected_decision":"DO_NOT_ACQUIRE"},
+  {"case_id":"case_017","scenario":"Valuation cannot be bounded","acres":150,"asking_price":900000,"benchmark_per_acre":null,"material_contradiction":false,"expected_decision":"DO_NOT_ACQUIRE"},
+  {"case_id":"case_018","scenario":"Good physically; poor economics","acres":100,"asking_price":1100000,"benchmark_per_acre":7000,"material_contradiction":false,"expected_decision":"DO_NOT_ACQUIRE"},
+  {"case_id":"case_019","scenario":"Mediocre physically; cheap enough","acres":100,"asking_price":450000,"benchmark_per_acre":6000,"material_contradiction":false,"expected_decision":"ACQUIRE"},
+  {"case_id":"case_020","scenario":"Critic overturns initial thesis","acres":100,"asking_price":650000,"benchmark_per_acre":7000,"material_contradiction":true,"expected_decision":"DO_NOT_ACQUIRE"}
+]

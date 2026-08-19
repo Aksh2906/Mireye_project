@@ -1,0 +1,45 @@
+services:
+  db:
+    image: postgis/postgis:16-3.4
+    environment:
+      POSTGRES_DB: mireye
+      POSTGRES_USER: mireye
+      POSTGRES_PASSWORD: mireye
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mireye"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    volumes:
+      - mireye_db:/var/lib/postgresql/data
+      - ./infrastructure/migrations:/docker-entrypoint-initdb.d:ro
+  api:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/api.Dockerfile
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      DATABASE_URL: postgresql+psycopg://mireye:mireye@db:5432/mireye
+    depends_on:
+      db:
+        condition: service_healthy
+    ports: ["8000:8000"]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  web:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/web.Dockerfile
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8000
+    depends_on:
+      api:
+        condition: service_healthy
+    ports: ["3000:3000"]
+volumes:
+  mireye_db:

@@ -13,3 +13,4 @@ dist/
 *.sqlite3
 evaluation/reports/*.json
 scripts/
+mireye_responses/

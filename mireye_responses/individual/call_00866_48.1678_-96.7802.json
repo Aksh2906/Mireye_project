@@ -1,0 +1,143 @@
+{
+  "call_number": 866,
+  "timestamp": "2026-08-20T17:36:49.046222+00:00",
+  "lat": 48.167814,
+  "lng": -96.780167,
+  "location_name": "random (48.1678, -96.7802)",
+  "status_code": 200,
+  "latency_ms": 4124,
+  "success": true,
+  "data": {
+    "lat": 48.167814,
+    "lng": -96.780167,
+    "fetched_at": "2026-08-20T17:36:49.188368+00:00",
+    "fields": {
+      "lcms_class": {
+        "value": "Grass/Forb/Herb",
+        "unit": null,
+        "source": "USFS_LCMS",
+        "source_url": "https://data.fs.usda.gov/geodata/rastergateway/LCMS/",
+        "confidence": "medium",
+        "fetched_at": "2026-08-20T17:36:45.355505+00:00",
+        "dataset_vintage": "USFS LCMS Land_Cover CONUS v2025-11 (2025 annual), ~120 m block-mode CONUS COG",
+        "ttl_seconds": 31536000,
+        "notes": "LCMS Land_Cover class sampled from the bootstrapped ~120 m block-mode CONUS COG",
+        "status": "ok"
+      },
+      "land_use_class": {
+        "value": "Agriculture",
+        "unit": null,
+        "source": "USFS_LCMS",
+        "source_url": "https://data.fs.usda.gov/geodata/rastergateway/LCMS/",
+        "confidence": "medium",
+        "fetched_at": "2026-08-20T17:36:45.356188+00:00",
+        "dataset_vintage": "USFS LCMS Land_Use CONUS v2025-11 (2025 annual), ~120 m block-mode CONUS COG",
+        "ttl_seconds": 31536000,
+        "notes": "LCMS Land_Use class sampled from the bootstrapped ~120 m block-mode CONUS COG",
+        "status": "ok"
+      },
+      "cdl_class": {
+        "value": "Soybeans",
+        "unit": null,
+        "source": "USDA_NASS_CDL",
+        "source_url": "https://nassgeodata.gmu.edu/CropScape/",
+        "confidence": "medium",
+        "fetched_at": "2026-08-20T17:36:45.353029+00:00",
+        "dataset_vintage": "USDA CDL 2025 (~120 m block-mode CONUS COG)",
+        "ttl_seconds": 31536000,
+        "notes": "CDL class sampled from the bootstrapped ~120 m block-mode CONUS COG",
+        "status": "ok"
+      },
+      "dominant_crop_5y": {
+        "value": "Soybeans",
+        "unit": null,
+        "source": "USDA_NASS_CDL",
+        "source_url": "https://nassgeodata.gmu.edu/CropScape/",
+        "confidence": "medium",
+        "fetched_at": "2026-08-20T17:36:45.354588+00:00",
+        "dataset_vintage": "USDA CDL 2021-2025 dominant-crop mode (~120 m CONUS COG)",
+        "ttl_seconds": 31536000,
+        "notes": "most-frequent CDL crop over the 5-year rotation, sampled from the bootstrapped ~120 m mode CONUS COG",
+        "status": "ok"
+      },
+      "elevation": {
+        "value": 258.8478088378906,
+        "unit": "meters",
+        "source": "USGS_3DEP_COG",
+        "source_url": "https://www.usgs.gov/3d-elevation-program",
+        "confidence": "medium",
+        "fetched_at": "2026-08-20T17:36:45.942642+00:00",
+        "dataset_vintage": "3DEP 1/3 arc-second seamless DEM",
+        "ttl_seconds": 31536000,
+        "notes": null,
+        "status": "ok"
+      },
+      "slope_degrees": {
+        "value": 0.26973626017570496,
+        "unit": "degrees",
+        "source": "USGS_3DEP_COG",
+        "source_url": "https://www.usgs.gov/3d-elevation-program",
+        "confidence": "medium",
+        "fetched_at": "2026-08-20T17:36:45.942271+00:00",
+        "dataset_vintage": null,
+        "ttl_seconds": 31536000,
+        "notes": null,
+        "status": "ok"
+      },
+      "soil_drainage_class": {
+        "value": "Somewhat poorly drained",
+        "unit": null,
+        "source": "NRCS_gNATSGO",
+        "source_url": "https://storage.googleapis.com/mireye-earth-data/soils/gnatsgo_mukey_conus_fy2025.tif",
+        "confidence": "high",
+        "fetched_at": "2026-08-20T17:36:45.922858+00:00",
+        "dataset_vintage": null,
+        "ttl_seconds": 31536000,
+        "notes": null,
+        "status": "ok"
+      },
+      "within_floodplain_polygon": {
+        "value": null,
+        "unit": null,
+        "source": "FEMA_NFHL",
+        "source_url": "https://hazards.fema.gov/arcgis/rest/services/public/NFHL/MapServer/28",
+        "confidence": "medium",
+        "fetched_at": "2026-08-20T17:36:45.415953+00:00",
+        "dataset_vintage": null,
+        "ttl_seconds": 2592000,
+        "notes": "FEMA NFHL does not cover this coordinate (no availability footprint \u2014 the area is unmapped by FEMA); flood zone and SFHA status are undetermined, not absent-of-risk.",
+        "status": "absent"
+      },
+      "intersects_wetland": {
+        "value": false,
+        "unit": null,
+        "source": "USFWS_NWI",
+        "source_url": "https://www.fws.gov/program/national-wetlands-inventory",
+        "confidence": "high",
+        "fetched_at": "2026-08-20T17:36:49.160156+00:00",
+        "dataset_vintage": null,
+        "ttl_seconds": 31536000,
+        "notes": null,
+        "status": "ok"
+      },
+      "coast_distance_m": {
+        "value": 1964860.6868756071,
+        "unit": "meters",
+        "source": "NOAA_CUSP",
+        "source_url": "https://shoreline.noaa.gov/data/datasheets/cusp.html",
+        "confidence": "high",
+        "fetched_at": "2026-08-20T17:36:45.383394+00:00",
+        "dataset_vintage": null,
+        "ttl_seconds": 31536000,
+        "notes": null,
+        "status": "ok"
+      }
+    },
+    "partial_failures": [],
+    "resolved_location": {
+      "lat": 48.167814,
+      "lng": -96.780167,
+      "source": "coordinate"
+    }
+  }
+}

@@ -1,0 +1,143 @@
+{
+  "call_number": 769,
+  "timestamp": "2026-08-20T17:28:59.959266+00:00",
+  "lat": 37.831685,
+  "lng": -100.141912,
+  "location_name": "random (37.8317, -100.1419)",
+  "status_code": 200,
+  "latency_ms": 967,
+  "success": true,
+  "data": {
+    "lat": 37.831685,
+    "lng": -100.141912,
+    "fetched_at": "2026-08-20T17:28:59.960031+00:00",
+    "fields": {
+      "lcms_class": {
+        "value": "Grass/Forb/Herb",
+        "unit": null,
+        "source": "USFS_LCMS",
+        "source_url": "https://data.fs.usda.gov/geodata/rastergateway/LCMS/",
+        "confidence": "medium",
+        "fetched_at": "2026-08-20T17:28:59.421691+00:00",
+        "dataset_vintage": "USFS LCMS Land_Cover CONUS v2025-11 (2025 annual), ~120 m block-mode CONUS COG",
+        "ttl_seconds": 31536000,
+        "notes": "LCMS Land_Cover class sampled from the bootstrapped ~120 m block-mode CONUS COG",
+        "status": "ok"
+      },
+      "land_use_class": {
+        "value": "Agriculture",
+        "unit": null,
+        "source": "USFS_LCMS",
+        "source_url": "https://data.fs.usda.gov/geodata/rastergateway/LCMS/",
+        "confidence": "medium",
+        "fetched_at": "2026-08-20T17:28:59.422863+00:00",
+        "dataset_vintage": "USFS LCMS Land_Use CONUS v2025-11 (2025 annual), ~120 m block-mode CONUS COG",
+        "ttl_seconds": 31536000,
+        "notes": "LCMS Land_Use class sampled from the bootstrapped ~120 m block-mode CONUS COG",
+        "status": "ok"
+      },
+      "cdl_class": {
+        "value": "Winter Wheat",
+        "unit": null,
+        "source": "USDA_NASS_CDL",
+        "source_url": "https://nassgeodata.gmu.edu/CropScape/",
+        "confidence": "medium",
+        "fetched_at": "2026-08-20T17:28:59.420127+00:00",
+        "dataset_vintage": "USDA CDL 2025 (~120 m block-mode CONUS COG)",
+        "ttl_seconds": 31536000,
+        "notes": "CDL class sampled from the bootstrapped ~120 m block-mode CONUS COG",
+        "status": "ok"
+      },
+      "dominant_crop_5y": {
+        "value": "Winter Wheat",
+        "unit": null,
+        "source": "USDA_NASS_CDL",
+        "source_url": "https://nassgeodata.gmu.edu/CropScape/",
+        "confidence": "medium",
+        "fetched_at": "2026-08-20T17:28:59.420832+00:00",
+        "dataset_vintage": "USDA CDL 2021-2025 dominant-crop mode (~120 m CONUS COG)",
+        "ttl_seconds": 31536000,
+        "notes": "most-frequent CDL crop over the 5-year rotation, sampled from the bootstrapped ~120 m mode CONUS COG",
+        "status": "ok"
+      },
+      "elevation": {
+        "value": 801.3557739257812,
+        "unit": "meters",
+        "source": "USGS_3DEP_COG",
+        "source_url": "https://www.usgs.gov/3d-elevation-program",
+        "confidence": "medium",
+        "fetched_at": "2026-08-20T17:28:59.931609+00:00",
+        "dataset_vintage": "3DEP 1/3 arc-second seamless DEM",
+        "ttl_seconds": 31536000,
+        "notes": null,
+        "status": "ok"
+      },
+      "slope_degrees": {
+        "value": 0.16984893381595612,
+        "unit": "degrees",
+        "source": "USGS_3DEP_COG",
+        "source_url": "https://www.usgs.gov/3d-elevation-program",
+        "confidence": "medium",
+        "fetched_at": "2026-08-20T17:28:59.932046+00:00",
+        "dataset_vintage": null,
+        "ttl_seconds": 31536000,
+        "notes": null,
+        "status": "ok"
+      },
+      "soil_drainage_class": {
+        "value": "Well drained",
+        "unit": null,
+        "source": "NRCS_gNATSGO",
+        "source_url": "https://storage.googleapis.com/mireye-earth-data/soils/gnatsgo_mukey_conus_fy2025.tif",
+        "confidence": "high",
+        "fetched_at": "2026-08-20T17:28:59.788053+00:00",
+        "dataset_vintage": null,
+        "ttl_seconds": 31536000,
+        "notes": null,
+        "status": "ok"
+      },
+      "within_floodplain_polygon": {
+        "value": false,
+        "unit": null,
+        "source": "FEMA_NFHL",
+        "source_url": "https://hazards.fema.gov/arcgis/rest/services/public/NFHL/MapServer/28",
+        "confidence": "high",
+        "fetched_at": "2026-08-20T17:28:59.493038+00:00",
+        "dataset_vintage": "20057C_BASE16",
+        "ttl_seconds": 2592000,
+        "notes": "FEMA NFHL Flood Hazard Zones intersect, but not an SFHA: Zone X; AREA OF MINIMAL FLOOD HAZARD; SFHA_TF=F; FLD_AR_ID=20057C_1670; SOURCE_CIT=20057C_BASE16.",
+        "status": "ok"
+      },
+      "intersects_wetland": {
+        "value": false,
+        "unit": null,
+        "source": "USFWS_NWI",
+        "source_url": "https://www.fws.gov/program/national-wetlands-inventory",
+        "confidence": "high",
+        "fetched_at": "2026-08-20T17:28:59.674364+00:00",
+        "dataset_vintage": null,
+        "ttl_seconds": 31536000,
+        "notes": null,
+        "status": "ok"
+      },
+      "coast_distance_m": {
+        "value": 998243.3354147116,
+        "unit": "meters",
+        "source": "NOAA_CUSP",
+        "source_url": "https://shoreline.noaa.gov/data/datasheets/cusp.html",
+        "confidence": "high",
+        "fetched_at": "2026-08-20T17:28:59.457921+00:00",
+        "dataset_vintage": null,
+        "ttl_seconds": 31536000,
+        "notes": null,
+        "status": "ok"
+      }
+    },
+    "partial_failures": [],
+    "resolved_location": {
+      "lat": 37.831685,
+      "lng": -100.141912,
+      "source": "coordinate"
+    }
+  }
+}

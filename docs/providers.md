@@ -1,8 +1,8 @@
 # Provider configuration
 
-## Mireye MCP
+## Mireye REST API
 
-Set `MIREYE_MCP_URL` and, when required, `MIREYE_MCP_TOKEN`. The adapter uses MCP JSON-RPC tool discovery before invocation and stores exact tool arguments and results as evidence references. Provider-specific tool names are mapped at the adapter boundary.
+Set `MIREYE_API_TOKEN` (and optionally `MIREYE_API_URL` if using a self-hosted deployment; defaults to `https://api.mireye.com`). The adapter calls the Mireye `/v1/fetch` endpoint with requested fields and stores exact arguments and results as evidence references. Provider-specific field names and provenance are preserved at the adapter boundary.
 
 ## OpenAI
 

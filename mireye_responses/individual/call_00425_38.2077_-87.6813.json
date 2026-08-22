@@ -1,0 +1,13 @@
+{
+  "call_number": 425,
+  "timestamp": "2026-08-20T17:01:15.127784+00:00",
+  "lat": 38.207741,
+  "lng": -87.68128,
+  "location_name": "random (38.2077, -87.6813)",
+  "status_code": 502,
+  "latency_ms": 31052,
+  "success": false,
+  "data": {
+    "error": ""
+  }
+}

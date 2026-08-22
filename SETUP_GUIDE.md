@@ -53,8 +53,8 @@ OPENAI_API_KEY=
 OPENAI_MODEL=gpt-5.6-sol
 OPENAI_REASONING_EFFORT=medium
 
-MIREYE_MCP_URL=
-MIREYE_MCP_TOKEN=
+MIREYE_API_URL=https://api.mireye.com
+MIREYE_API_TOKEN=
 
 GEOCODER_BASE_URL=https://nominatim.openstreetmap.org
 CDL_SERVICE_URL=https://nassgeodata.gmu.edu/axis2/services/CDLService/GetCDLValue
@@ -79,8 +79,8 @@ MAX_WALL_CLOCK_SECONDS=180
 | `OPENAI_API_KEY` | No | Agent-selected investigations, specialist assessments, critic, and strategy assessment | Create a project API key in the [OpenAI API dashboard](https://platform.openai.com/api-keys) and ensure API billing/credits are configured |
 | `OPENAI_MODEL` | No | Selecting the OpenAI model | Defaults to `gpt-5.6-sol`; `gpt-5.6-terra` is a lower-cost alternative |
 | `OPENAI_REASONING_EFFORT` | No | Model reasoning depth | Keep `medium` initially; supported values depend on the chosen model |
-| `MIREYE_MCP_URL` | No | Mireye property and physical context | The Streamable HTTP MCP endpoint supplied by Mireye or your Mireye deployment |
-| `MIREYE_MCP_TOKEN` | Sometimes | Authenticating to Mireye MCP | Bearer token supplied by Mireye; leave blank if the MCP endpoint does not require authentication |
+| `MIREYE_API_URL` | No | Mireye property and physical context | Defaults to `https://api.mireye.com`; override only if using a self-hosted Mireye deployment |
+| `MIREYE_API_TOKEN` | Yes for Mireye | Authenticating to Mireye REST API | Bearer token from [www.mireye.com](https://www.mireye.com) account settings |
 | `MARKET_BENCHMARK_URL` | No | Regional value-per-acre evidence | A market-data API that you operate or license, matching the contract below |
 | `MARKET_COMPARABLES_URL` | No | Comparable agricultural transactions | A market-data API that you operate or license, matching the contract below |
 | `APP_API_KEY` | No | Optional bearer protection for `/api/*` | Generate your own strong secret; leave blank for the current direct-browser local UI |
@@ -108,21 +108,16 @@ If cost is more important than maximum reasoning quality, try:
 OPENAI_MODEL=gpt-5.6-terra
 ```
 
-### Mireye MCP setup
+### Mireye API setup
 
-You need a Streamable HTTP MCP endpoint, for example:
+Sign in at [www.mireye.com](https://www.mireye.com) (Google or email/password) and create an API token in account settings. Then set:
 
 ```dotenv
-MIREYE_MCP_URL=https://your-mireye-host.example.com/mcp
-MIREYE_MCP_TOKEN=your_optional_bearer_token
+MIREYE_API_URL=https://api.mireye.com
+MIREYE_API_TOKEN=your_api_token_here
 ```
 
-At runtime the adapter performs MCP `initialize` and `tools/list`, then discovers tools by their names and descriptions. For complete functionality, the server should expose tools corresponding to:
-
-- property/context retrieval;
-- field catalog/discovery;
-- quote retrieval, if billed fields require a quote;
-- batch context retrieval, if supported.
+The adapter calls the Mireye REST API (`/v1/fetch`) directly with the bearer token. The default URL points to Mireye's production API. The adapter fetches terrain, land cover, flood risk, and physical context fields for each investigated coordinate.
 
 The adapter preserves the provider tool name, exact arguments, structured response fields, geometry, and source limitations. Property-level cultivated acreage is accepted as a property footprint only when Mireye returns property-scope metadata plus Polygon or MultiPolygon geometry.
 
@@ -355,13 +350,13 @@ Configure `MARKET_BENCHMARK_URL` and preferably `MARKET_COMPARABLES_URL`. The ap
 
 ### Mireye is shown as unavailable
 
-Verify the URL, token, TLS certificate, and MCP tool discovery:
+Verify that `MIREYE_API_TOKEN` is set in `.env` and the API process was restarted. Test connectivity:
 
 ```bash
-curl -i "$MIREYE_MCP_URL"
+curl -s https://api.mireye.com/v1/meta/fields | head -20
 ```
 
-The endpoint must support MCP JSON-RPC over HTTP; a normal REST property endpoint is not interchangeable.
+If the token is invalid or expired, create a new one from [www.mireye.com](https://www.mireye.com) account settings.
 
 ### OpenAI assessments do not appear
 

@@ -1,9 +1,7 @@
 from __future__ import annotations
 
 import asyncio
-import json
 from typing import Any
-from uuid import uuid4
 
 from app.config import get_settings
 from app.connectors.cache import provider_cache
@@ -11,86 +9,154 @@ from app.connectors.http import async_client
 from app.domain.models import Evidence, EvidenceSource, SourceType, ToolResult
 
 
-class MireyeMCPAdapter:
-    """A provider-isolated MCP Streamable HTTP adapter with runtime tool discovery."""
+# Default fields relevant to agricultural property investigations.
+_DEFAULT_FIELDS = [
+    "elevation",
+    "slope_degrees",
+    "soil_drainage_class",
+    "within_floodplain_polygon",
+    "intersects_wetland",
+    "wetland_type",
+    "nearest_wetland_distance_m",
+    "coast_distance_m",
+    "lcms_class",
+    "land_use_class",
+    "tree_canopy_pct",
+    "cdl_class",
+    "dominant_crop_5y",
+]
+
+
+class MireyeRESTAdapter:
+    """Mireye REST API adapter using /v1/fetch and /v1/meta/fields."""
 
     def __init__(self) -> None:
         self.settings = get_settings()
-        self._tools: list[dict[str, Any]] | None = None
-        self._session_id: str | None = None
 
     def _headers(self) -> dict[str, str]:
         headers = {
-            "Accept": "application/json, text/event-stream",
+            "Accept": "application/json",
             "Content-Type": "application/json",
         }
-        if self.settings.mireye_mcp_token:
-            headers["Authorization"] = f"Bearer {self.settings.mireye_mcp_token}"
-        if self._session_id:
-            headers["Mcp-Session-Id"] = self._session_id
+        if self.settings.mireye_api_token:
+            headers["Authorization"] = f"Bearer {self.settings.mireye_api_token}"
         return headers
 
-    async def _rpc(self, method: str, params: dict[str, Any] | None = None) -> Any:
-        if not self.settings.mireye_mcp_url:
-            raise RuntimeError("MIREYE_MCP_URL is not configured")
-        body = {"jsonrpc": "2.0", "id": str(uuid4()), "method": method, "params": params or {}}
-        async with async_client(timeout=60) as client:
-            response = await client.post(
-                self.settings.mireye_mcp_url, headers=self._headers(), json=body
-            )
-            response.raise_for_status()
-            if response.headers.get("mcp-session-id"):
-                self._session_id = response.headers["mcp-session-id"]
-            payload = response.json()
-        if payload.get("error"):
-            raise RuntimeError(payload["error"].get("message", "MCP request failed"))
-        return payload.get("result", {})
-
-    async def discover_tools(self) -> list[dict[str, Any]]:
-        if self._tools is not None:
-            return self._tools
-        try:
-            await self._rpc(
-                "initialize",
-                {
-                    "protocolVersion": "2025-03-26",
-                    "capabilities": {},
-                    "clientInfo": {"name": "mireye-agri-agent", "version": "0.1.0"},
-                },
-            )
-            result = await self._rpc("tools/list")
-            self._tools = result.get("tools", [])
-        except Exception:
-            self._tools = []
-            raise
-        return self._tools
-
-    async def _select_tool(self, concepts: tuple[str, ...]) -> dict[str, Any]:
-        tools = await self.discover_tools()
-        for tool in tools:
-            haystack = f"{tool.get('name', '')} {tool.get('description', '')}".lower()
-            if all(concept in haystack for concept in concepts):
-                return tool
-        raise RuntimeError(f"Mireye MCP exposes no matching tool for: {', '.join(concepts)}")
+    def _url(self, path: str) -> str:
+        base = self.settings.mireye_api_url.rstrip("/")
+        return f"{base}{path}"
 
     async def get_field_catalog(self) -> list[dict[str, Any]]:
-        tool = await self._select_tool(("field",))
-        result = await self._rpc("tools/call", {"name": tool["name"], "arguments": {}})
-        return result.get("content", [])
+        """GET /v1/meta/fields — public, no token needed."""
+        try:
+            async with async_client(timeout=30) as client:
+                response = await client.get(self._url("/v1/meta/fields"))
+                response.raise_for_status()
+                return response.json()
+        except Exception:
+            return []
 
     @staticmethod
-    def _structured_payload(result: dict[str, Any]) -> Any:
-        if "structuredContent" in result:
-            return result["structuredContent"]
-        content = result.get("content", [])
-        for item in content if isinstance(content, list) else []:
-            if isinstance(item, dict) and item.get("type") == "text":
-                try:
-                    return json.loads(item.get("text", ""))
-                except (TypeError, json.JSONDecodeError):
-                    continue
-        return content
+    def _normalize_fetch_response(
+        data: dict[str, Any],
+        latitude: float,
+        longitude: float,
+        requested_fields: list[str] | None,
+    ) -> list[Evidence]:
+        """Convert a /v1/fetch response into Evidence items."""
+        api_url = data.get("resolved_location", {}).get("source", "coordinate")
+        fields = data.get("fields", {})
+        observations: list[Evidence] = []
 
+        # Overall physical_context evidence with the full payload
+        base_source = EvidenceSource(
+            publisher="Mireye",
+            dataset="/v1/fetch",
+            url="https://api.mireye.com/v1/fetch",
+        )
+        observations.append(
+            Evidence(
+                source_type=SourceType.MIREYE,
+                source=base_source,
+                field_name="physical_context",
+                value=fields,
+                geometry={"type": "Point", "coordinates": [longitude, latitude]},
+                semantic_scope="physical context at requested coordinate",
+                confidence=0.75,
+                limitations=[
+                    "Point context does not establish a legal parcel boundary or property right."
+                ],
+                raw_reference={
+                    "tool": "/v1/fetch",
+                    "arguments": {
+                        "lat": latitude,
+                        "lng": longitude,
+                        "fields": requested_fields,
+                    },
+                    "location_source": api_url,
+                },
+            )
+        )
+
+        # Individual field-level evidence
+        for field_name, field_data in fields.items():
+            if not isinstance(field_data, dict):
+                continue
+            # Skip failed fields
+            status = field_data.get("status", "ok")
+            if status == "failed":
+                continue
+
+            value = field_data.get("value")
+            source_name = field_data.get("source", "Mireye")
+            source_url = field_data.get("source_url", "https://api.mireye.com")
+            confidence_str = field_data.get("confidence", "medium")
+            confidence_map = {"high": 0.85, "medium": 0.7, "low": 0.5, "unknown": 0.5}
+            confidence = confidence_map.get(confidence_str, 0.7)
+
+            field_source = EvidenceSource(
+                publisher="Mireye",
+                dataset=source_name,
+                url=source_url,
+                vintage=field_data.get("dataset_vintage"),
+            )
+
+            is_property_scope = False
+            geometry: dict[str, Any] = {
+                "type": "Point",
+                "coordinates": [longitude, latitude],
+            }
+
+            observations.append(
+                Evidence(
+                    source_type=SourceType.MIREYE,
+                    source=field_source,
+                    field_name=str(field_name),
+                    value=value,
+                    unit=field_data.get("unit"),
+                    geometry=geometry,
+                    semantic_scope=(
+                        "property cultivated footprint"
+                        if field_name == "cultivated_acres" and is_property_scope
+                        else "provider physical field"
+                    ),
+                    confidence=confidence,
+                    limitations=[
+                        "Provider field context is physical evidence and does not establish legal rights."
+                    ]
+                    + ([field_data["notes"]] if field_data.get("notes") else []),
+                    raw_reference={
+                        "tool": "/v1/fetch",
+                        "arguments": {"lat": latitude, "lng": longitude},
+                        "provider_field": field_name,
+                        "fetched_at": field_data.get("fetched_at"),
+                    },
+                )
+            )
+
+        return observations
+
+    # Keep _normalize_context for backward compatibility with tests
     def _normalize_context(
         self,
         provider_tool: str,
@@ -99,11 +165,28 @@ class MireyeMCPAdapter:
         latitude: float,
         longitude: float,
     ) -> list[Evidence]:
-        payload = self._structured_payload(result)
+        """Backward-compatible normalization. Handles both MCP-style
+        structuredContent payloads (for tests) and REST API responses."""
+        # Handle MCP-style structuredContent (used by existing tests)
+        if "structuredContent" in result:
+            payload = result["structuredContent"]
+        else:
+            content = result.get("content", [])
+            payload = content
+            import json
+
+            for item in content if isinstance(content, list) else []:
+                if isinstance(item, dict) and item.get("type") == "text":
+                    try:
+                        payload = json.loads(item.get("text", ""))
+                        break
+                    except (TypeError, json.JSONDecodeError):
+                        continue
+
         base_source = EvidenceSource(
             publisher="Mireye",
             dataset=provider_tool,
-            url=self.settings.mireye_mcp_url,
+            url=self.settings.mireye_api_url,
         )
         observations = [
             Evidence(
@@ -163,86 +246,72 @@ class MireyeMCPAdapter:
     async def quote_request(
         self, latitude: float, longitude: float, fields: list[str]
     ) -> dict[str, Any]:
-        tool = await self._select_tool(("quote",))
-        schema = tool.get("inputSchema", {}).get("properties", {})
-        args: dict[str, Any] = {}
-        for aliases, value in (
-            (("latitude", "lat"), latitude),
-            (("longitude", "lon", "lng"), longitude),
-            (("fields",), fields),
-        ):
-            key = next((candidate for candidate in aliases if candidate in schema), None)
-            if key:
-                args[key] = value
-        return await self._rpc("tools/call", {"name": tool["name"], "arguments": args})
+        """Not applicable for REST API — returns empty result."""
+        return {"content": [], "note": "Quote requests are not available via the REST API."}
 
     async def fetch_batch_context(
         self, coordinates: list[tuple[float, float]], fields: list[str] | None = None
     ) -> list[ToolResult]:
-        try:
-            tool = await self._select_tool(("batch", "context"))
-            schema = tool.get("inputSchema", {}).get("properties", {})
-            args: dict[str, Any] = {}
-            points = [{"latitude": lat, "longitude": lon} for lat, lon in coordinates]
-            for key in ("coordinates", "points", "locations"):
-                if key in schema:
-                    args[key] = points
-                    break
-            if fields and "fields" in schema:
-                args["fields"] = fields
-            raw = await self._rpc("tools/call", {"name": tool["name"], "arguments": args})
-            payload = self._structured_payload(raw)
-            if not isinstance(payload, list) or len(payload) != len(coordinates):
-                raise RuntimeError(
-                    "Mireye batch result could not be aligned to requested coordinates"
-                )
-            results: list[ToolResult] = []
-            for (latitude, longitude), item in zip(coordinates, payload):
-                normalized = self._normalize_context(
-                    tool["name"], args, {"structuredContent": item}, latitude, longitude
-                )
-                results.append(
-                    ToolResult(
-                        tool_name="mireye.fetch_batch_context",
-                        success=True,
-                        observations=normalized,
-                        raw_metadata={"provider_tool": tool["name"]},
-                    )
-                )
-            return results
-        except Exception:
-            return await asyncio.gather(
+        """Fetch context for multiple coordinates concurrently."""
+        return list(
+            await asyncio.gather(
                 *(self.fetch_context(lat, lon, fields) for lat, lon in coordinates)
             )
+        )
 
     async def fetch_context(
         self, latitude: float, longitude: float, fields: list[str] | None = None
     ) -> ToolResult:
-        cache_key = f"mireye:{latitude:.6f}:{longitude:.6f}:{','.join(sorted(fields or []))}"
+        """Call POST /v1/fetch with the given coordinate and fields."""
+        requested_fields = fields or _DEFAULT_FIELDS
+        cache_key = (
+            f"mireye:{latitude:.6f}:{longitude:.6f}:{','.join(sorted(requested_fields))}"
+        )
         cached = provider_cache.get(cache_key)
         if cached:
             return cached
+
+        if not self.settings.mireye_api_token:
+            return ToolResult(
+                tool_name="mireye.fetch_context",
+                success=False,
+                limitations=[
+                    "MIREYE_API_TOKEN is not configured; set it in .env to enable Mireye physical context."
+                ],
+            )
+
         try:
-            tool = await self._select_tool(("context",))
-            schema = tool.get("inputSchema", {}).get("properties", {})
-            args: dict[str, Any] = {}
-            for candidate in ("latitude", "lat"):
-                if candidate in schema:
-                    args[candidate] = latitude
-                    break
-            for candidate in ("longitude", "lon", "lng"):
-                if candidate in schema:
-                    args[candidate] = longitude
-                    break
-            if fields and "fields" in schema:
-                args["fields"] = fields
-            result = await self._rpc("tools/call", {"name": tool["name"], "arguments": args})
-            evidence = self._normalize_context(tool["name"], args, result, latitude, longitude)
+            body: dict[str, Any] = {
+                "lat": latitude,
+                "lng": longitude,
+                "fields": requested_fields,
+            }
+            async with async_client(timeout=120) as client:
+                response = await client.post(
+                    self._url("/v1/fetch"),
+                    headers=self._headers(),
+                    json=body,
+                )
+                response.raise_for_status()
+                data = response.json()
+
+            evidence = self._normalize_fetch_response(
+                data, latitude, longitude, requested_fields
+            )
+
+            # Collect any partial failures as limitations
+            limitations: list[str] = []
+            for failure in data.get("partial_failures", []):
+                field = failure.get("field", "unknown")
+                error = failure.get("error", "unknown error")
+                limitations.append(f"Mireye field '{field}' unavailable: {error}")
+
             result = ToolResult(
                 tool_name="mireye.fetch_context",
                 success=True,
                 observations=evidence,
-                raw_metadata={"provider_tool": tool["name"]},
+                limitations=limitations,
+                raw_metadata={"api_endpoint": "/v1/fetch"},
             )
             provider_cache.set(cache_key, result)
             return result
@@ -252,3 +321,7 @@ class MireyeMCPAdapter:
                 success=False,
                 limitations=[f"Mireye unavailable: {exc}"],
             )
+
+
+# Backward compatibility alias
+MireyeMCPAdapter = MireyeRESTAdapter

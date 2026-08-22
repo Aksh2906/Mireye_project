@@ -1,7 +1,7 @@
 import unittest
 
 from app.connectors.agriculture import parse_cdl_result
-from app.connectors.mireye import MireyeMCPAdapter
+from app.connectors.mireye import MireyeRESTAdapter
 
 
 class ConnectorNormalizationTests(unittest.TestCase):
@@ -19,7 +19,7 @@ class ConnectorNormalizationTests(unittest.TestCase):
         self.assertFalse(result["is_agricultural"])
 
     def test_mireye_property_scope_requires_polygon_metadata(self):
-        adapter = MireyeMCPAdapter()
+        adapter = MireyeRESTAdapter()
         evidence = adapter._normalize_context(
             "property_context",
             {"latitude": 42, "longitude": -93},

@@ -10,8 +10,8 @@ class Settings(BaseSettings):
     openai_api_key: str | None = None
     openai_model: str = "gpt-5.6-sol"
     openai_reasoning_effort: str = "medium"
-    mireye_mcp_url: str | None = None
-    mireye_mcp_token: str | None = None
+    mireye_api_url: str = "https://api.mireye.com"
+    mireye_api_token: str | None = None
     geocoder_base_url: str = "https://nominatim.openstreetmap.org"
     cdl_service_url: str = "https://nassgeodata.gmu.edu/axis2/services/CDLService/GetCDLValue"
     ssurgo_service_url: str = "https://sdmdataaccess.sc.egov.usda.gov/Tabular/post.rest"

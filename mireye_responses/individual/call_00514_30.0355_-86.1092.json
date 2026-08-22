@@ -1,0 +1,152 @@
+{
+  "call_number": 514,
+  "timestamp": "2026-08-20T17:08:34.171287+00:00",
+  "lat": 30.035503,
+  "lng": -86.10918,
+  "location_name": "random (30.0355, -86.1092)",
+  "status_code": 200,
+  "latency_ms": 3237,
+  "success": true,
+  "data": {
+    "lat": 30.035503,
+    "lng": -86.10918,
+    "fetched_at": "2026-08-20T17:08:34.303527+00:00",
+    "fields": {
+      "lcms_class": {
+        "value": null,
+        "unit": null,
+        "source": "USFS_LCMS",
+        "source_url": "https://data.fs.usda.gov/geodata/rastergateway/LCMS/",
+        "confidence": "medium",
+        "fetched_at": "2026-08-20T17:08:31.754861+00:00",
+        "dataset_vintage": "USFS LCMS Land_Cover CONUS v2025-11 (2025 annual), ~120 m block-mode CONUS COG",
+        "ttl_seconds": 31536000,
+        "notes": "point outside the LCMS Land_Cover CONUS grid footprint (AK/HI/PRUSVI/ocean) or on a nodata cell",
+        "status": "absent"
+      },
+      "land_use_class": {
+        "value": null,
+        "unit": null,
+        "source": "USFS_LCMS",
+        "source_url": "https://data.fs.usda.gov/geodata/rastergateway/LCMS/",
+        "confidence": "medium",
+        "fetched_at": "2026-08-20T17:08:31.755410+00:00",
+        "dataset_vintage": "USFS LCMS Land_Use CONUS v2025-11 (2025 annual), ~120 m block-mode CONUS COG",
+        "ttl_seconds": 31536000,
+        "notes": "point outside the LCMS Land_Use CONUS grid footprint (AK/HI/PRUSVI/ocean) or on a nodata cell",
+        "status": "absent"
+      },
+      "cdl_class": {
+        "value": null,
+        "unit": null,
+        "source": "USDA_NASS_CDL",
+        "source_url": "https://nassgeodata.gmu.edu/CropScape/",
+        "confidence": "medium",
+        "fetched_at": "2026-08-20T17:08:31.753040+00:00",
+        "dataset_vintage": "USDA CDL 2025 (~120 m block-mode CONUS COG)",
+        "ttl_seconds": 31536000,
+        "notes": "point outside the CDL CONUS grid footprint (AK/HI/PRUSVI/ocean) or on a background/nodata cell",
+        "status": "absent"
+      },
+      "dominant_crop_5y": {
+        "value": null,
+        "unit": null,
+        "source": "USDA_NASS_CDL",
+        "source_url": "https://nassgeodata.gmu.edu/CropScape/",
+        "confidence": "medium",
+        "fetched_at": "2026-08-20T17:08:31.753757+00:00",
+        "dataset_vintage": "USDA CDL 2021-2025 dominant-crop mode (~120 m CONUS COG)",
+        "ttl_seconds": 31536000,
+        "notes": "no dominant CDL crop in the 5-year rotation at this point (not cropland, or outside the CDL CONUS grid footprint)",
+        "status": "absent"
+      },
+      "elevation": {
+        "value": 0.0,
+        "unit": "meters",
+        "source": "USGS_EPQS",
+        "source_url": "https://epqs.nationalmap.gov/v1/json?x=-86.10918&y=30.035503&wkid=4326&units=Meters",
+        "confidence": "high",
+        "fetched_at": "2026-08-20T17:08:34.011904+00:00",
+        "dataset_vintage": "3DEP dynamic service",
+        "ttl_seconds": 31536000,
+        "notes": "static 3DEP COG unavailable (ValueError); sampled from EPQS dynamic service",
+        "status": "ok"
+      },
+      "slope_degrees": {
+        "value": null,
+        "unit": "degrees",
+        "source": "USGS_3DEP_COG",
+        "source_url": "https://www.usgs.gov/3d-elevation-program",
+        "confidence": "high",
+        "fetched_at": "2026-08-20T17:08:32.284585+00:00",
+        "dataset_vintage": null,
+        "ttl_seconds": 31536000,
+        "notes": "3DEP DEM has nodata in the 3x3 slope window (coverage edge: non-US point, open water, or a masked border/coastal pixel); slope is undefined here",
+        "status": "absent"
+      },
+      "within_floodplain_polygon": {
+        "value": null,
+        "unit": null,
+        "source": "FEMA_NFHL",
+        "source_url": "https://hazards.fema.gov/arcgis/rest/services/public/NFHL/MapServer/28",
+        "confidence": "medium",
+        "fetched_at": "2026-08-20T17:08:31.826092+00:00",
+        "dataset_vintage": null,
+        "ttl_seconds": 2592000,
+        "notes": "FEMA NFHL does not cover this coordinate (no availability footprint \u2014 the area is unmapped by FEMA); flood zone and SFHA status are undetermined, not absent-of-risk.",
+        "status": "absent"
+      },
+      "intersects_wetland": {
+        "value": false,
+        "unit": null,
+        "source": "USFWS_NWI",
+        "source_url": "https://www.fws.gov/program/national-wetlands-inventory",
+        "confidence": "high",
+        "fetched_at": "2026-08-20T17:08:34.261750+00:00",
+        "dataset_vintage": null,
+        "ttl_seconds": 31536000,
+        "notes": null,
+        "status": "ok"
+      },
+      "coast_distance_m": {
+        "value": 28067.82956791177,
+        "unit": "meters",
+        "source": "NOAA_CUSP",
+        "source_url": "https://shoreline.noaa.gov/data/datasheets/cusp.html",
+        "confidence": "high",
+        "fetched_at": "2026-08-20T17:08:31.787730+00:00",
+        "dataset_vintage": null,
+        "ttl_seconds": 31536000,
+        "notes": null,
+        "status": "ok"
+      },
+      "soil_drainage_class": {
+        "value": null,
+        "unit": null,
+        "source": "USDA_SSURGO",
+        "source_url": "https://www.nrcs.usda.gov/resources/data-and-reports/soil-survey-geographic-database-ssurgo",
+        "confidence": "unknown",
+        "fetched_at": null,
+        "dataset_vintage": null,
+        "ttl_seconds": 31536000,
+        "notes": "parent attribute resolved to None",
+        "status": "failed",
+        "error": "parent attribute resolved to None",
+        "retryable": false
+      }
+    },
+    "partial_failures": [
+      {
+        "field": "soil_drainage_class",
+        "source": "USDA_SSURGO",
+        "error": "parent attribute resolved to None",
+        "retryable": false
+      }
+    ],
+    "resolved_location": {
+      "lat": 30.035503,
+      "lng": -86.10918,
+      "source": "coordinate"
+    }
+  }
+}

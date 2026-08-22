@@ -1,0 +1,152 @@
+{
+  "call_number": 661,
+  "timestamp": "2026-08-20T17:21:18.590634+00:00",
+  "lat": 40.711999,
+  "lng": -73.974149,
+  "location_name": "near New York, NY",
+  "status_code": 200,
+  "latency_ms": 2705,
+  "success": true,
+  "data": {
+    "lat": 40.711999,
+    "lng": -73.974149,
+    "fetched_at": "2026-08-20T17:21:18.727515+00:00",
+    "fields": {
+      "lcms_class": {
+        "value": "Water",
+        "unit": null,
+        "source": "USFS_LCMS",
+        "source_url": "https://data.fs.usda.gov/geodata/rastergateway/LCMS/",
+        "confidence": "medium",
+        "fetched_at": "2026-08-20T17:21:16.306410+00:00",
+        "dataset_vintage": "USFS LCMS Land_Cover CONUS v2025-11 (2025 annual), ~120 m block-mode CONUS COG",
+        "ttl_seconds": 31536000,
+        "notes": "LCMS Land_Cover class sampled from the bootstrapped ~120 m block-mode CONUS COG",
+        "status": "ok"
+      },
+      "land_use_class": {
+        "value": "Other",
+        "unit": null,
+        "source": "USFS_LCMS",
+        "source_url": "https://data.fs.usda.gov/geodata/rastergateway/LCMS/",
+        "confidence": "medium",
+        "fetched_at": "2026-08-20T17:21:16.307764+00:00",
+        "dataset_vintage": "USFS LCMS Land_Use CONUS v2025-11 (2025 annual), ~120 m block-mode CONUS COG",
+        "ttl_seconds": 31536000,
+        "notes": "LCMS Land_Use class sampled from the bootstrapped ~120 m block-mode CONUS COG",
+        "status": "ok"
+      },
+      "cdl_class": {
+        "value": "Open Water",
+        "unit": null,
+        "source": "USDA_NASS_CDL",
+        "source_url": "https://nassgeodata.gmu.edu/CropScape/",
+        "confidence": "medium",
+        "fetched_at": "2026-08-20T17:21:16.303880+00:00",
+        "dataset_vintage": "USDA CDL 2025 (~120 m block-mode CONUS COG)",
+        "ttl_seconds": 31536000,
+        "notes": "CDL class sampled from the bootstrapped ~120 m block-mode CONUS COG",
+        "status": "ok"
+      },
+      "dominant_crop_5y": {
+        "value": null,
+        "unit": null,
+        "source": "USDA_NASS_CDL",
+        "source_url": "https://nassgeodata.gmu.edu/CropScape/",
+        "confidence": "medium",
+        "fetched_at": "2026-08-20T17:21:16.304627+00:00",
+        "dataset_vintage": "USDA CDL 2021-2025 dominant-crop mode (~120 m CONUS COG)",
+        "ttl_seconds": 31536000,
+        "notes": "no dominant CDL crop in the 5-year rotation at this point (not cropland, or outside the CDL CONUS grid footprint)",
+        "status": "absent"
+      },
+      "elevation": {
+        "value": 0.0,
+        "unit": "meters",
+        "source": "USGS_3DEP_COG",
+        "source_url": "https://www.usgs.gov/3d-elevation-program",
+        "confidence": "medium",
+        "fetched_at": "2026-08-20T17:21:17.058071+00:00",
+        "dataset_vintage": "3DEP 1/3 arc-second seamless DEM",
+        "ttl_seconds": 31536000,
+        "notes": null,
+        "status": "ok"
+      },
+      "slope_degrees": {
+        "value": 0.0,
+        "unit": "degrees",
+        "source": "USGS_3DEP_COG",
+        "source_url": "https://www.usgs.gov/3d-elevation-program",
+        "confidence": "medium",
+        "fetched_at": "2026-08-20T17:21:17.059034+00:00",
+        "dataset_vintage": null,
+        "ttl_seconds": 31536000,
+        "notes": null,
+        "status": "ok"
+      },
+      "within_floodplain_polygon": {
+        "value": true,
+        "unit": null,
+        "source": "FEMA_NFHL",
+        "source_url": "https://hazards.fema.gov/arcgis/rest/services/public/NFHL/MapServer/28",
+        "confidence": "high",
+        "fetched_at": "2026-08-20T17:21:16.365887+00:00",
+        "dataset_vintage": "360497_FIS1",
+        "ttl_seconds": 2592000,
+        "notes": "FEMA NFHL Flood Hazard Zones indicate Special Flood Hazard Area: Zone AE; SFHA_TF=T; FLD_AR_ID=360497_2328; SOURCE_CIT=360497_FIS1.",
+        "status": "ok"
+      },
+      "intersects_wetland": {
+        "value": true,
+        "unit": null,
+        "source": "USFWS_NWI",
+        "source_url": "https://www.fws.gov/program/national-wetlands-inventory",
+        "confidence": "high",
+        "fetched_at": "2026-08-20T17:21:18.693186+00:00",
+        "dataset_vintage": null,
+        "ttl_seconds": 31536000,
+        "notes": null,
+        "status": "ok"
+      },
+      "coast_distance_m": {
+        "value": 174.15725100836215,
+        "unit": "meters",
+        "source": "NOAA_CUSP",
+        "source_url": "https://shoreline.noaa.gov/data/datasheets/cusp.html",
+        "confidence": "high",
+        "fetched_at": "2026-08-20T17:21:16.336421+00:00",
+        "dataset_vintage": null,
+        "ttl_seconds": 31536000,
+        "notes": null,
+        "status": "ok"
+      },
+      "soil_drainage_class": {
+        "value": null,
+        "unit": null,
+        "source": "NRCS_gNATSGO",
+        "source_url": "https://www.nrcs.usda.gov/resources/data-and-reports/soil-survey-geographic-database-ssurgo",
+        "confidence": "unknown",
+        "fetched_at": null,
+        "dataset_vintage": null,
+        "ttl_seconds": 31536000,
+        "notes": "source returned null at this coordinate",
+        "status": "failed",
+        "error": "source returned null at this coordinate",
+        "retryable": false
+      }
+    },
+    "partial_failures": [
+      {
+        "field": "soil_drainage_class",
+        "source": "NRCS_gNATSGO",
+        "error": "source returned null at this coordinate",
+        "retryable": false
+      }
+    ],
+    "resolved_location": {
+      "lat": 40.711999,
+      "lng": -73.974149,
+      "source": "coordinate"
+    }
+  }
+}

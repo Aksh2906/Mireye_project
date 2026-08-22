@@ -1,0 +1,143 @@
+{
+  "call_number": 921,
+  "timestamp": "2026-08-20T17:41:44.530211+00:00",
+  "lat": 36.161667,
+  "lng": -86.756791,
+  "location_name": "near Nashville, TN",
+  "status_code": 200,
+  "latency_ms": 1299,
+  "success": true,
+  "data": {
+    "lat": 36.161667,
+    "lng": -86.756791,
+    "fetched_at": "2026-08-20T17:41:44.667884+00:00",
+    "fields": {
+      "lcms_class": {
+        "value": "Barren or Impervious",
+        "unit": null,
+        "source": "USFS_LCMS",
+        "source_url": "https://data.fs.usda.gov/geodata/rastergateway/LCMS/",
+        "confidence": "medium",
+        "fetched_at": "2026-08-20T17:41:43.942223+00:00",
+        "dataset_vintage": "USFS LCMS Land_Cover CONUS v2025-11 (2025 annual), ~120 m block-mode CONUS COG",
+        "ttl_seconds": 31536000,
+        "notes": "LCMS Land_Cover class sampled from the bootstrapped ~120 m block-mode CONUS COG",
+        "status": "ok"
+      },
+      "land_use_class": {
+        "value": "Developed",
+        "unit": null,
+        "source": "USFS_LCMS",
+        "source_url": "https://data.fs.usda.gov/geodata/rastergateway/LCMS/",
+        "confidence": "medium",
+        "fetched_at": "2026-08-20T17:41:43.942498+00:00",
+        "dataset_vintage": "USFS LCMS Land_Use CONUS v2025-11 (2025 annual), ~120 m block-mode CONUS COG",
+        "ttl_seconds": 31536000,
+        "notes": "LCMS Land_Use class sampled from the bootstrapped ~120 m block-mode CONUS COG",
+        "status": "ok"
+      },
+      "cdl_class": {
+        "value": "Developed/Med Intensity",
+        "unit": null,
+        "source": "USDA_NASS_CDL",
+        "source_url": "https://nassgeodata.gmu.edu/CropScape/",
+        "confidence": "medium",
+        "fetched_at": "2026-08-20T17:41:43.941090+00:00",
+        "dataset_vintage": "USDA CDL 2025 (~120 m block-mode CONUS COG)",
+        "ttl_seconds": 31536000,
+        "notes": "CDL class sampled from the bootstrapped ~120 m block-mode CONUS COG",
+        "status": "ok"
+      },
+      "dominant_crop_5y": {
+        "value": null,
+        "unit": null,
+        "source": "USDA_NASS_CDL",
+        "source_url": "https://nassgeodata.gmu.edu/CropScape/",
+        "confidence": "medium",
+        "fetched_at": "2026-08-20T17:41:43.941569+00:00",
+        "dataset_vintage": "USDA CDL 2021-2025 dominant-crop mode (~120 m CONUS COG)",
+        "ttl_seconds": 31536000,
+        "notes": "no dominant CDL crop in the 5-year rotation at this point (not cropland, or outside the CDL CONUS grid footprint)",
+        "status": "absent"
+      },
+      "elevation": {
+        "value": 127.7126693725586,
+        "unit": "meters",
+        "source": "USGS_3DEP_COG",
+        "source_url": "https://www.usgs.gov/3d-elevation-program",
+        "confidence": "medium",
+        "fetched_at": "2026-08-20T17:41:44.637205+00:00",
+        "dataset_vintage": "3DEP 1/3 arc-second seamless DEM",
+        "ttl_seconds": 31536000,
+        "notes": null,
+        "status": "ok"
+      },
+      "slope_degrees": {
+        "value": 0.5564979314804077,
+        "unit": "degrees",
+        "source": "USGS_3DEP_COG",
+        "source_url": "https://www.usgs.gov/3d-elevation-program",
+        "confidence": "medium",
+        "fetched_at": "2026-08-20T17:41:44.638060+00:00",
+        "dataset_vintage": null,
+        "ttl_seconds": 31536000,
+        "notes": null,
+        "status": "ok"
+      },
+      "soil_drainage_class": {
+        "value": "Moderately well drained",
+        "unit": null,
+        "source": "NRCS_gNATSGO",
+        "source_url": "https://storage.googleapis.com/mireye-earth-data/soils/gnatsgo_mukey_conus_fy2025.tif",
+        "confidence": "high",
+        "fetched_at": "2026-08-20T17:41:44.005135+00:00",
+        "dataset_vintage": null,
+        "ttl_seconds": 31536000,
+        "notes": null,
+        "status": "ok"
+      },
+      "within_floodplain_polygon": {
+        "value": false,
+        "unit": null,
+        "source": "FEMA_NFHL",
+        "source_url": "https://hazards.fema.gov/arcgis/rest/services/public/NFHL/MapServer/28",
+        "confidence": "high",
+        "fetched_at": "2026-08-20T17:41:44.013593+00:00",
+        "dataset_vintage": "47037C_STUDY1",
+        "ttl_seconds": 2592000,
+        "notes": "FEMA NFHL Flood Hazard Zones intersect, but not an SFHA: Zone X; 0.2 PCT ANNUAL CHANCE FLOOD HAZARD; SFHA_TF=F; FLD_AR_ID=47037C_19145; SOURCE_CIT=47037C_STUDY1.",
+        "status": "ok"
+      },
+      "intersects_wetland": {
+        "value": false,
+        "unit": null,
+        "source": "USFWS_NWI",
+        "source_url": "https://www.fws.gov/program/national-wetlands-inventory",
+        "confidence": "high",
+        "fetched_at": "2026-08-20T17:41:44.470468+00:00",
+        "dataset_vintage": null,
+        "ttl_seconds": 31536000,
+        "notes": null,
+        "status": "ok"
+      },
+      "coast_distance_m": {
+        "value": 519041.80237466306,
+        "unit": "meters",
+        "source": "NOAA_CUSP",
+        "source_url": "https://shoreline.noaa.gov/data/datasheets/cusp.html",
+        "confidence": "high",
+        "fetched_at": "2026-08-20T17:41:43.971534+00:00",
+        "dataset_vintage": null,
+        "ttl_seconds": 31536000,
+        "notes": null,
+        "status": "ok"
+      }
+    },
+    "partial_failures": [],
+    "resolved_location": {
+      "lat": 36.161667,
+      "lng": -86.756791,
+      "source": "coordinate"
+    }
+  }
+}

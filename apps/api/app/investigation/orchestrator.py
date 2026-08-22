@@ -7,7 +7,7 @@ from app.agents.runtime import AgentRuntime
 from app.config import get_settings
 from app.connectors.agriculture import AgricultureAdapter
 from app.connectors.market import MarketAdapter
-from app.connectors.mireye import MireyeMCPAdapter
+from app.connectors.mireye import MireyeRESTAdapter
 from app.domain.models import (
     AgentRunArtifact,
     ClaimState,
@@ -46,7 +46,7 @@ class InvestigationOrchestrator:
         self.settings = get_settings()
         self.resolver = InputResolver()
         self.agent = AgentRuntime()
-        self.mireye = MireyeMCPAdapter()
+        self.mireye = MireyeRESTAdapter()
         self.agriculture = AgricultureAdapter()
         self.market = MarketAdapter()
         self.enrichment = EnrichmentEngine()

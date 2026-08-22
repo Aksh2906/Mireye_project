@@ -1,0 +1,168 @@
+{
+  "call_number": 87,
+  "timestamp": "2026-08-20T16:34:08.393609+00:00",
+  "lat": 26.219288,
+  "lng": -84.785667,
+  "location_name": "random (26.2193, -84.7857)",
+  "status_code": 200,
+  "latency_ms": 3133,
+  "success": true,
+  "data": {
+    "lat": 26.219288,
+    "lng": -84.785667,
+    "fetched_at": "2026-08-20T16:34:08.521427+00:00",
+    "fields": {
+      "lcms_class": {
+        "value": null,
+        "unit": null,
+        "source": "USFS_LCMS",
+        "source_url": "https://data.fs.usda.gov/geodata/rastergateway/LCMS/",
+        "confidence": "medium",
+        "fetched_at": "2026-08-20T16:34:05.981401+00:00",
+        "dataset_vintage": "USFS LCMS Land_Cover CONUS v2025-11 (2025 annual), ~120 m block-mode CONUS COG",
+        "ttl_seconds": 31536000,
+        "notes": "point outside the LCMS Land_Cover CONUS grid footprint (AK/HI/PRUSVI/ocean) or on a nodata cell",
+        "status": "absent"
+      },
+      "land_use_class": {
+        "value": null,
+        "unit": null,
+        "source": "USFS_LCMS",
+        "source_url": "https://data.fs.usda.gov/geodata/rastergateway/LCMS/",
+        "confidence": "medium",
+        "fetched_at": "2026-08-20T16:34:05.984400+00:00",
+        "dataset_vintage": "USFS LCMS Land_Use CONUS v2025-11 (2025 annual), ~120 m block-mode CONUS COG",
+        "ttl_seconds": 31536000,
+        "notes": "point outside the LCMS Land_Use CONUS grid footprint (AK/HI/PRUSVI/ocean) or on a nodata cell",
+        "status": "absent"
+      },
+      "cdl_class": {
+        "value": null,
+        "unit": null,
+        "source": "USDA_NASS_CDL",
+        "source_url": "https://nassgeodata.gmu.edu/CropScape/",
+        "confidence": "medium",
+        "fetched_at": "2026-08-20T16:34:05.976161+00:00",
+        "dataset_vintage": "USDA CDL 2025 (~120 m block-mode CONUS COG)",
+        "ttl_seconds": 31536000,
+        "notes": "point outside the CDL CONUS grid footprint (AK/HI/PRUSVI/ocean) or on a background/nodata cell",
+        "status": "absent"
+      },
+      "dominant_crop_5y": {
+        "value": null,
+        "unit": null,
+        "source": "USDA_NASS_CDL",
+        "source_url": "https://nassgeodata.gmu.edu/CropScape/",
+        "confidence": "medium",
+        "fetched_at": "2026-08-20T16:34:05.979084+00:00",
+        "dataset_vintage": "USDA CDL 2021-2025 dominant-crop mode (~120 m CONUS COG)",
+        "ttl_seconds": 31536000,
+        "notes": "no dominant CDL crop in the 5-year rotation at this point (not cropland, or outside the CDL CONUS grid footprint)",
+        "status": "absent"
+      },
+      "within_floodplain_polygon": {
+        "value": null,
+        "unit": null,
+        "source": "FEMA_NFHL",
+        "source_url": "https://hazards.fema.gov/arcgis/rest/services/public/NFHL/MapServer/28",
+        "confidence": "medium",
+        "fetched_at": "2026-08-20T16:34:06.057874+00:00",
+        "dataset_vintage": null,
+        "ttl_seconds": 2592000,
+        "notes": "FEMA NFHL does not cover this coordinate (no availability footprint \u2014 the area is unmapped by FEMA); flood zone and SFHA status are undetermined, not absent-of-risk.",
+        "status": "absent"
+      },
+      "intersects_wetland": {
+        "value": false,
+        "unit": null,
+        "source": "USFWS_NWI",
+        "source_url": "https://www.fws.gov/program/national-wetlands-inventory",
+        "confidence": "high",
+        "fetched_at": "2026-08-20T16:34:06.134031+00:00",
+        "dataset_vintage": null,
+        "ttl_seconds": 31536000,
+        "notes": null,
+        "status": "ok"
+      },
+      "coast_distance_m": {
+        "value": 248165.2016673409,
+        "unit": "meters",
+        "source": "NOAA_CUSP",
+        "source_url": "https://shoreline.noaa.gov/data/datasheets/cusp.html",
+        "confidence": "high",
+        "fetched_at": "2026-08-20T16:34:06.019844+00:00",
+        "dataset_vintage": null,
+        "ttl_seconds": 31536000,
+        "notes": null,
+        "status": "ok"
+      },
+      "elevation": {
+        "value": null,
+        "unit": "meters",
+        "source": "USGS_3DEP_COG",
+        "source_url": "https://www.usgs.gov/3d-elevation-program",
+        "confidence": "unknown",
+        "fetched_at": null,
+        "dataset_vintage": null,
+        "ttl_seconds": 31536000,
+        "notes": "COG read failed: ObjectNotFound: The specified key does not exist.; EPQS fallback failed: Expecting value: line 1 column 1 (char 0)",
+        "status": "failed",
+        "error": "COG read failed: ObjectNotFound: The specified key does not exist.; EPQS fallback failed: Expecting value: line 1 column 1 (char 0)",
+        "retryable": false
+      },
+      "slope_degrees": {
+        "value": null,
+        "unit": "degrees",
+        "source": "USGS_3DEP_COG",
+        "source_url": "https://www.usgs.gov/3d-elevation-program",
+        "confidence": "unknown",
+        "fetched_at": null,
+        "dataset_vintage": null,
+        "ttl_seconds": 31536000,
+        "notes": "DEM read failed: ObjectNotFound: The specified key does not exist.",
+        "status": "failed",
+        "error": "DEM read failed: ObjectNotFound: The specified key does not exist.",
+        "retryable": false
+      },
+      "soil_drainage_class": {
+        "value": null,
+        "unit": null,
+        "source": "USDA_SSURGO",
+        "source_url": "https://www.nrcs.usda.gov/resources/data-and-reports/soil-survey-geographic-database-ssurgo",
+        "confidence": "unknown",
+        "fetched_at": null,
+        "dataset_vintage": null,
+        "ttl_seconds": 31536000,
+        "notes": "parent attribute resolved to None",
+        "status": "failed",
+        "error": "parent attribute resolved to None",
+        "retryable": false
+      }
+    },
+    "partial_failures": [
+      {
+        "field": "elevation",
+        "source": "USGS_3DEP_COG",
+        "error": "COG read failed: ObjectNotFound: The specified key does not exist.; EPQS fallback failed: Expecting value: line 1 column 1 (char 0)",
+        "retryable": false
+      },
+      {
+        "field": "slope_degrees",
+        "source": "USGS_3DEP_COG",
+        "error": "DEM read failed: ObjectNotFound: The specified key does not exist.",
+        "retryable": false
+      },
+      {
+        "field": "soil_drainage_class",
+        "source": "USDA_SSURGO",
+        "error": "parent attribute resolved to None",
+        "retryable": false
+      }
+    ],
+    "resolved_location": {
+      "lat": 26.219288,
+      "lng": -84.785667,
+      "source": "coordinate"
+    }
+  }
+}

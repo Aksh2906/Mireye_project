@@ -8,7 +8,6 @@ from app.connectors.cache import provider_cache
 from app.connectors.http import async_client
 from app.domain.models import Evidence, EvidenceSource, SourceType, ToolResult
 
-
 # Default fields relevant to agricultural property investigations.
 _DEFAULT_FIELDS = [
     "elevation",

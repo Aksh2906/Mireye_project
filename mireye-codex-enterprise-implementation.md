@@ -1,13 +1,13 @@
 # Mireye Agricultural Acquisition Intelligence Agent
 ## Codex Enterprise End-to-End Implementation Specification
 
-**Status:** Build specification
-**Product:** Agriculture-specific autonomous land acquisition investigation platform
-**Primary integration:** Mireye MCP
-**Agent runtime:** OpenAI API, agent use only
-**Frontend:** Next.js + TypeScript
-**Backend:** Python + FastAPI
-**Database:** PostgreSQL + PostGIS
+**Status:** Build specification  
+**Product:** Agriculture-specific autonomous land acquisition investigation platform  
+**Primary integration:** Mireye MCP  
+**Agent runtime:** OpenAI API, agent use only  
+**Frontend:** Next.js + TypeScript  
+**Backend:** Python + FastAPI  
+**Database:** PostgreSQL + PostGIS  
 **Deployment:** Docker-first, production-ready
 
 ---

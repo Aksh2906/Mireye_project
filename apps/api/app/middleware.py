@@ -45,6 +45,10 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         self.requests: dict[str, deque[float]] = defaultdict(deque)
 
     async def dispatch(self, request: Request, call_next):
+        # Browser CORS negotiation is infrastructure traffic, not an API call.
+        # Counting it makes a polling UI consume the allowance twice as fast.
+        if request.method == "OPTIONS" or request.url.path == "/health":
+            return await call_next(request)
         key = request.client.host if request.client else "unknown"
         now = time.monotonic()
         bucket = self.requests[key]

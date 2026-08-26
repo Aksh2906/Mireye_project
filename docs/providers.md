@@ -18,4 +18,11 @@ CropScape `GetCDLValue` receives coordinates transformed from WGS84 to its docum
 
 ## Market data
 
-Set `MARKET_BENCHMARK_URL` to a service implementing the documented benchmark adapter response and `MARKET_COMPARABLES_URL` to a service returning provenance-bearing comparable transactions. When absent, valuation remains unavailable or broad rather than inventing a market value. Each comparable must include sale price and acreage; price per acre is calculated deterministically.
+Set `NASS_QUICKSTATS_API_KEY` to use the built-in USDA NASS state farm-real-estate
+value-per-acre benchmark. `MARKET_BENCHMARK_URL` optionally overrides NASS with a
+service implementing the documented benchmark adapter response.
+`MARKET_COMPARABLES_URL` remains a separate service returning provenance-bearing
+transactions; Quick Stats does not provide property-sale comparables. When absent,
+valuation remains unavailable or broad rather than inventing a market value. Each
+comparable must include sale price and acreage; price per acre is calculated
+deterministically.

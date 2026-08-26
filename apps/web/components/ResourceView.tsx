@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { API, api } from "@/lib/api";
 import type { InvestigationRecord } from "@/lib/types";
+import MarkdownView from "./MarkdownView";
 
 const money = (value: number | null | undefined) =>
   value == null ? "Unavailable" : `$${Math.round(value).toLocaleString()}`;
@@ -76,12 +77,17 @@ export default function ResourceView({
                     confidence
                   </p>
                   <h3>{item.field_name.replaceAll("_", " ")}</h3>
-                  <p className="evidence-value">
-                    {typeof item.value === "object"
-                      ? JSON.stringify(item.value)
-                      : String(item.value)}{" "}
-                    {item.unit || ""}
-                  </p>
+                  {item.source_type === "MIREYE" &&
+                  typeof item.value === "string" ? (
+                    <MarkdownView content={item.value} />
+                  ) : (
+                    <p className="evidence-value">
+                      {typeof item.value === "object"
+                        ? JSON.stringify(item.value)
+                        : String(item.value)}{" "}
+                      {item.unit || ""}
+                    </p>
+                  )}
                   <p className="muted">
                     {item.source.publisher} — {item.source.dataset}
                     {item.source.vintage ? ` · ${item.source.vintage}` : ""}

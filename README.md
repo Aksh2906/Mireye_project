@@ -1,20 +1,27 @@
-# Mireye Agricultural Acquisition Intelligence
+# Farm Acquire
 
 An evidence-first, autonomous agricultural property acquisition investigation system. It accepts an address, listing URL, or natural-language property description; preserves claims and source provenance; selects investigations using value of information; and returns a binary acquisition verdict, valuation range, diligence plan, and negotiation strategy.
 
-## Quick start
+## Quick start without Docker
 
-1. Copy `.env.example` to `.env` and configure provider credentials.
-2. Run `docker compose up --build`.
-3. Open `http://localhost:3000`; API documentation is at `http://localhost:8000/docs`.
-
-For local API development:
+Python 3.12 and Node.js 22+ are required.
 
 ```bash
-python3 -m venv .venv
-.venv/bin/pip install -e 'apps/api[dev]'
-PYTHONPATH=apps/api .venv/bin/uvicorn app.main:app --reload
+make setup
+make doctor
+make dev
 ```
+
+Then open `http://localhost:3000`; API documentation is at `http://localhost:8000/docs`. The local workflow uses SQLite and does not require PostgreSQL or Docker.
+
+To run one service at a time:
+
+```bash
+make api-dev
+make web-dev
+```
+
+Docker remains available later with `make dev-docker`.
 
 The system never substitutes fabricated provider data. Missing credentials and unavailable datasets are represented as explicit limitations. See [docs/architecture.md](docs/architecture.md) and [docs/providers.md](docs/providers.md).
 

@@ -4,24 +4,38 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import type { InvestigationRecord } from "@/lib/types";
+import MarkdownView from "./MarkdownView";
 const MapPanel = dynamic(() => import("./MapPanel"), { ssr: false });
 export default function InvestigationView({ id }: { id: string }) {
   const [state, setState] = useState<InvestigationRecord | null>(null);
   const [error, setError] = useState("");
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout>;
-    const load = () =>
-      api<InvestigationRecord>(`/investigations/${id}`)
-        .then((data) => {
+    let cancelled = false;
+    let failures = 0;
+    const load = async () => {
+      try {
+        const data = await api<InvestigationRecord>(`/investigations/${id}`);
+        if (cancelled) return;
+        failures = 0;
+        setError("");
           setState(data);
-          if (!["completed", "failed", "needs_input"].includes(data.status))
-            timer = setTimeout(load, 1500);
-        })
-        .catch((e) => setError(e.message));
+        if (!["completed", "failed", "needs_input"].includes(data.status))
+          timer = setTimeout(load, 2500);
+      } catch (e) {
+        if (cancelled) return;
+        failures += 1;
+        setError(e instanceof Error ? e.message : "Unable to refresh investigation");
+        timer = setTimeout(load, Math.min(30000, 2500 * 2 ** failures));
+      }
+    };
     load();
-    return () => clearTimeout(timer);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
   }, [id]);
-  if (error)
+  if (error && !state)
     return (
       <div className="shell">
         <p className="error">{error}</p>
@@ -42,8 +56,20 @@ export default function InvestigationView({ id }: { id: string }) {
         : "pending";
   const p = state.property;
   const valuation = state.valuation;
+  const mireyeReport = state.evidence.find(
+    (item) =>
+      item.source_type === "MIREYE" &&
+      item.field_name === "mireye_report" &&
+      typeof item.value === "string",
+  );
   return (
     <div className="shell">
+      {error && (
+        <div className="warning" role="status">
+          Live refresh is temporarily unavailable: {error}. Showing the latest
+          saved investigation and retrying automatically.
+        </div>
+      )}
       <div className="topline">
         <div>
           <p className="eyebrow">Investigation · {state.status}</p>
@@ -92,6 +118,15 @@ export default function InvestigationView({ id }: { id: string }) {
               ))}
             </ol>
           </section>
+          {mireyeReport && typeof mireyeReport.value === "string" && (
+            <section className="panel">
+              <div className="section-title">
+                <h2>Mireye property intelligence</h2>
+                <Link href={`/investigation/${id}/evidence`}>Sources →</Link>
+              </div>
+              <MarkdownView content={mireyeReport.value} />
+            </section>
+          )}
           <section className="panel">
             <div className="section-title">
               <h2>Claims & evidence</h2>

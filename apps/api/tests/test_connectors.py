@@ -1,6 +1,7 @@
 import unittest
 
 from app.connectors.agriculture import parse_cdl_result
+from app.connectors.market import NASS_LAND_VALUE_SERIES, select_latest_nass_land_value
 from app.connectors.mireye import MireyeMCPAdapter
 
 
@@ -17,6 +18,26 @@ class ConnectorNormalizationTests(unittest.TestCase):
         )
         self.assertIsNotNone(result)
         self.assertFalse(result["is_agricultural"])
+
+    def test_latest_nass_land_value_is_selected_and_parsed(self):
+        selected = select_latest_nass_land_value(
+            [
+                {"short_desc": NASS_LAND_VALUE_SERIES, "year": 2024, "Value": "9,420"},
+                {"short_desc": NASS_LAND_VALUE_SERIES, "year": 2025, "Value": "9,780"},
+                {"short_desc": "OTHER SERIES", "year": 2026, "Value": "99,999"},
+            ]
+        )
+        self.assertIsNotNone(selected)
+        assert selected is not None
+        row, value = selected
+        self.assertEqual(row["year"], 2025)
+        self.assertEqual(value, 9780)
+
+    def test_suppressed_nass_values_are_ignored(self):
+        selected = select_latest_nass_land_value(
+            [{"short_desc": NASS_LAND_VALUE_SERIES, "year": 2025, "Value": "(D)"}]
+        )
+        self.assertIsNone(selected)
 
     def test_mireye_property_scope_requires_polygon_metadata(self):
         adapter = MireyeMCPAdapter()
@@ -36,3 +57,25 @@ class ConnectorNormalizationTests(unittest.TestCase):
         acres = next(item for item in evidence if item.field_name == "cultivated_acres")
         self.assertEqual(acres.semantic_scope, "property cultivated footprint")
         self.assertEqual(acres.raw_reference["provider_field"], "cultivated_acres")
+
+    def test_mireye_markdown_text_is_preserved(self):
+        payload = MireyeMCPAdapter._structured_payload(
+            {"content": [{"type": "text", "text": "# Site report\n\n- Well drained"}]}
+        )
+        self.assertEqual(payload, "# Site report\n\n- Well drained")
+
+    def test_mireye_rest_answer_is_normalized_as_report(self):
+        adapter = MireyeMCPAdapter()
+        adapter.settings.mireye_api_url = "https://api.mireye.com"
+        evidence = adapter._normalize_rest_answer(
+            {
+                "answer": "## Soil\n\nModerately drained.",
+                "confidence": "HIGH",
+                "citations": [{"source": "USDA"}],
+            },
+            42,
+            -93,
+        )
+        self.assertEqual(evidence[0].field_name, "mireye_report")
+        self.assertEqual(evidence[0].value, "## Soil\n\nModerately drained.")
+        self.assertEqual(evidence[0].raw_reference["citations"], [{"source": "USDA"}])

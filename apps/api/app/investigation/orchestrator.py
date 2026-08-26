@@ -461,9 +461,28 @@ class InvestigationOrchestrator:
                 "mireye.fetch_context",
                 "agriculture.get_crop_history",
                 "agriculture.get_soil_context",
-                "market.get_benchmark",
-                "market.find_comparables",
             ]
+            if (
+                self.settings.market_benchmark_url
+                or self.settings.nass_quickstats_api_key
+            ):
+                available.append("market.get_benchmark")
+            else:
+                limitation = (
+                    "Neither MARKET_BENCHMARK_URL nor NASS_QUICKSTATS_API_KEY is "
+                    "configured; no independent market value was inferred."
+                )
+                if limitation not in state.limitations:
+                    state.limitations.append(limitation)
+            if self.settings.market_comparables_url:
+                available.append("market.find_comparables")
+            else:
+                limitation = (
+                    "MARKET_COMPARABLES_URL is not configured; comparable sales "
+                    "were not inferred."
+                )
+                if limitation not in state.limitations:
+                    state.limitations.append(limitation)
             completed: set[str] = set()
             turns = 0
             while (

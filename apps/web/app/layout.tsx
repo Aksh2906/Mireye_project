@@ -4,7 +4,7 @@ import "maplibre-gl/dist/maplibre-gl.css";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Mireye Acquisition Intelligence",
+  title: "Farm Acquire",
   description: "Evidence-first agricultural acquisition investigations",
 };
 
@@ -16,7 +16,7 @@ export default function RootLayout({
       <body>
         <header className="nav">
           <Link className="brand" href="/">
-            <span className="mark">M</span> Mireye Intelligence
+            <span className="mark">F</span> Farm Acquire
           </Link>
           <nav>
             <Link href="/">Investigate</Link>

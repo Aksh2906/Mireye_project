@@ -1,4 +1,4 @@
-# Mireye Agricultural Acquisition Intelligence Agent
+# Farm Acquire Implementation Plan
 ## Codex Enterprise End-to-End Implementation Specification
 
 **Status:** Build specification

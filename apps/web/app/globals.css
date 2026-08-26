@@ -377,6 +377,50 @@ textarea {
   font-size: 15px;
   line-height: 1.5;
 }
+.markdown-view {
+  color: #33423a;
+  font-size: 14px;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+}
+.markdown-view > :first-child {
+  margin-top: 0;
+}
+.markdown-view > :last-child {
+  margin-bottom: 0;
+}
+.markdown-view h1,
+.markdown-view h2,
+.markdown-view h3 {
+  margin: 1.2em 0 0.45em;
+  font-family: Georgia, serif;
+}
+.markdown-view h1 { font-size: 25px; }
+.markdown-view h2 { font-size: 21px; }
+.markdown-view h3 { font-size: 17px; }
+.markdown-view table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.markdown-view th,
+.markdown-view td {
+  border: 1px solid var(--line);
+  padding: 7px 9px;
+  text-align: left;
+}
+.markdown-view pre,
+.markdown-view code {
+  background: #eef1eb;
+  border-radius: 3px;
+}
+.markdown-view code { padding: 2px 4px; }
+.markdown-view pre { padding: 12px; overflow-x: auto; }
+.markdown-view blockquote {
+  border-left: 3px solid var(--green);
+  margin-left: 0;
+  padding-left: 14px;
+  color: #66736b;
+}
 .claim-row {
   display: flex;
   align-items: flex-start;

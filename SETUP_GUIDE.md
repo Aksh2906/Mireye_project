@@ -1,24 +1,25 @@
-# Mireye project setup guide
+# Farm Acquire setup guide
 
 This guide covers two ways to run the project:
 
-1. **Docker setup (recommended):** runs Next.js, FastAPI, PostgreSQL, and PostGIS together.
-2. **Local development setup:** runs the API and web app directly and can use SQLite to avoid installing PostgreSQL.
+1. **Local development setup (recommended for now):** runs FastAPI and Next.js directly with SQLite.
+2. **Docker setup:** runs Next.js, FastAPI, PostgreSQL, and PostGIS together when Docker is available.
 
 The application starts without external credentials. Without provider credentials, unavailable evidence is recorded as a limitation and the application does not fabricate replacement data.
 
 ## 1. Prerequisites
 
-For the recommended Docker setup, install:
+For the local setup, install:
+
+- Python 3.12
+- Node.js 22 or newer and npm
+- Git
+
+For the Docker setup, install:
 
 - Docker Desktop with Docker Compose v2
 - Git
 - At least 4 GB of free memory for the stack
-
-For local development without Docker, also install:
-
-- Python 3.12
-- Node.js 22 and npm
 
 Check your tools:
 
@@ -40,31 +41,34 @@ cp .env.example .env
 
 The `.env` file is ignored by Git. Never commit it or paste its secrets into frontend code.
 
-### Copy-ready local Docker configuration
+### Copy-ready local configuration
 
 ```dotenv
 APP_ENV=development
 APP_API_KEY=
 
-# Docker Compose overrides this value inside the API container.
-DATABASE_URL=postgresql+psycopg://mireye:mireye@localhost:5432/mireye
+DATABASE_URL=sqlite+pysqlite:///./mireye.sqlite3
 
 OPENAI_API_KEY=
 OPENAI_MODEL=gpt-5.6-sol
 OPENAI_REASONING_EFFORT=medium
 
-MIREYE_MCP_URL=
+MIREYE_API_URL=https://api.mireye.com
+MIREYE_API_TOKEN=
+MIREYE_MCP_URL=https://api.mireye.com/mcp
 MIREYE_MCP_TOKEN=
 
 GEOCODER_BASE_URL=https://nominatim.openstreetmap.org
 CDL_SERVICE_URL=https://nassgeodata.gmu.edu/axis2/services/CDLService/GetCDLValue
 SSURGO_SERVICE_URL=https://sdmdataaccess.sc.egov.usda.gov/Tabular/post.rest
+NASS_QUICKSTATS_BASE_URL=https://quickstats.nass.usda.gov/api/api_GET/
+NASS_QUICKSTATS_API_KEY=
 
 MARKET_BENCHMARK_URL=
 MARKET_COMPARABLES_URL=
 
 NEXT_PUBLIC_API_URL=http://localhost:8000
-CORS_ORIGINS=http://localhost:3000
+CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
 
 MAX_AGENT_TURNS=12
 MAX_TOOL_CALLS=30
@@ -79,8 +83,11 @@ MAX_WALL_CLOCK_SECONDS=180
 | `OPENAI_API_KEY` | No | Agent-selected investigations, specialist assessments, critic, and strategy assessment | Create a project API key in the [OpenAI API dashboard](https://platform.openai.com/api-keys) and ensure API billing/credits are configured |
 | `OPENAI_MODEL` | No | Selecting the OpenAI model | Defaults to `gpt-5.6-sol`; `gpt-5.6-terra` is a lower-cost alternative |
 | `OPENAI_REASONING_EFFORT` | No | Model reasoning depth | Keep `medium` initially; supported values depend on the chosen model |
-| `MIREYE_MCP_URL` | No | Mireye property and physical context | The Streamable HTTP MCP endpoint supplied by Mireye or your Mireye deployment |
-| `MIREYE_MCP_TOKEN` | Sometimes | Authenticating to Mireye MCP | Bearer token supplied by Mireye; leave blank if the MCP endpoint does not require authentication |
+| `MIREYE_API_URL` | No | Mireye property intelligence through `/v1/ask` | Use `https://api.mireye.com` for the hosted service |
+| `MIREYE_API_TOKEN` | Yes for hosted Mireye | Authenticating to the Mireye REST API | Bearer token supplied by Mireye |
+| `MIREYE_MCP_URL` | No | Optional MCP fallback | Use `https://api.mireye.com/mcp` for the hosted MCP service; do not use the host root |
+| `MIREYE_MCP_TOKEN` | Sometimes | Authenticating to Mireye MCP, and fallback auth when `MIREYE_API_TOKEN` is blank | Bearer token supplied by Mireye |
+| `NASS_QUICKSTATS_API_KEY` | Yes for the built-in benchmark | Latest USDA state farm-real-estate value per acre | Request a key from the USDA NASS Quick Stats API page |
 | `MARKET_BENCHMARK_URL` | No | Regional value-per-acre evidence | A market-data API that you operate or license, matching the contract below |
 | `MARKET_COMPARABLES_URL` | No | Comparable agricultural transactions | A market-data API that you operate or license, matching the contract below |
 | `APP_API_KEY` | No | Optional bearer protection for `/api/*` | Generate your own strong secret; leave blank for the current direct-browser local UI |
@@ -108,12 +115,21 @@ If cost is more important than maximum reasoning quality, try:
 OPENAI_MODEL=gpt-5.6-terra
 ```
 
-### Mireye MCP setup
+### Mireye setup
 
-You need a Streamable HTTP MCP endpoint, for example:
+The hosted REST integration is the simplest setup. Its answer is retained as
+Markdown and displayed with source metadata in the evidence view:
 
 ```dotenv
-MIREYE_MCP_URL=https://your-mireye-host.example.com/mcp
+MIREYE_API_URL=https://api.mireye.com
+MIREYE_API_TOKEN=your_bearer_token
+```
+
+The adapter can instead use Streamable HTTP MCP when `MIREYE_API_URL` is blank:
+
+```dotenv
+MIREYE_API_URL=
+MIREYE_MCP_URL=https://api.mireye.com/mcp
 MIREYE_MCP_TOKEN=your_optional_bearer_token
 ```
 
@@ -128,7 +144,21 @@ The adapter preserves the provider tool name, exact arguments, structured respon
 
 ### Market benchmark API contract
 
-`MARKET_BENCHMARK_URL` receives a `GET` request with `state` and `county` query parameters. It should return:
+The built-in and recommended benchmark is USDA NASS Quick Stats. Configure:
+
+```dotenv
+NASS_QUICKSTATS_BASE_URL=https://quickstats.nass.usda.gov/api/api_GET/
+NASS_QUICKSTATS_API_KEY=your_usda_nass_key
+MARKET_BENCHMARK_URL=
+```
+
+The connector retrieves the newest state-level annual `AG LAND, INCL BUILDINGS`
+asset value measured in dollars per acre. It is retained as a broad state benchmark
+with an explicit limitation that it is not county-specific or a property appraisal.
+
+`MARKET_BENCHMARK_URL` is an optional override for a licensed or internally hosted
+provider. When set, it takes precedence over USDA NASS and receives a `GET` request
+with `state` and `county` query parameters. It should return:
 
 ```json
 {
@@ -204,7 +234,40 @@ curl http://localhost:8000/api/investigations \
 
 For production browser authentication, place the application behind your identity-aware gateway or add a server-side session/proxy layer. Never expose `APP_API_KEY` through a `NEXT_PUBLIC_*` variable.
 
-## 4. Run with Docker (recommended)
+## 4. Run locally without Docker (recommended)
+
+Install all dependencies once:
+
+```bash
+make setup
+make doctor
+```
+
+Start the API and web application together:
+
+```bash
+make dev
+```
+
+The command starts:
+
+- FastAPI at `http://localhost:8000`;
+- Next.js at `http://localhost:3000`;
+- a local SQLite database at `mireye.sqlite3`.
+
+Press `Ctrl+C` once to stop both services cleanly.
+
+To run the services in separate terminals:
+
+```bash
+make api-dev
+```
+
+```bash
+make web-dev
+```
+
+## 5. Run with Docker later
 
 Start Docker Desktop first, then from the repository root run:
 
@@ -253,7 +316,7 @@ docker compose up --build
 
 The `--volumes` command permanently removes the local Compose database. Do not use it if the data must be retained.
 
-## 5. Run locally without Docker
+## 6. Manual local setup
 
 ### API with SQLite
 
@@ -261,8 +324,7 @@ Create a virtual environment and install the API:
 
 ```bash
 python3.12 -m venv .venv
-.venv/bin/pip install --upgrade pip
-.venv/bin/pip install -e 'apps/api[dev]'
+.venv/bin/pip install -r apps/api/requirements-local.txt
 ```
 
 For a no-Postgres local run, change this line in `.env`:
@@ -291,7 +353,7 @@ Open `http://localhost:3000`.
 
 If you use local PostgreSQL instead of SQLite, create a PostGIS-enabled database and set a compatible `DATABASE_URL`. The full normalized production schema is created by `infrastructure/migrations/001_initial.sql`; SQLite is intended for development and automated tests.
 
-## 6. Verify the installation
+## 7. Verify the installation
 
 Run backend checks from the repository root:
 
@@ -312,7 +374,7 @@ npm audit --audit-level=high
 
 The evaluation report is written to `evaluation/reports/latest.json`, with failures in `evaluation/reports/failures.json`.
 
-## 7. First investigation
+## 8. First investigation
 
 1. Open `http://localhost:3000/profile` and create a buyer profile.
 2. Return to the home page.
@@ -323,7 +385,7 @@ The evaluation report is written to `evaluation/reports/latest.json`, with failu
 
 Without a market provider, valuation will remain unavailable. Without Mireye, the run still attempts USDA and configured market investigations and records the missing Mireye context. Without OpenAI, deterministic fallback investigation candidates still run, but specialist/critic model assessments are unavailable.
 
-## 8. Common problems
+## 9. Common problems
 
 ### Cannot connect to the Docker daemon
 
@@ -340,7 +402,7 @@ Check:
 
 ```dotenv
 NEXT_PUBLIC_API_URL=http://localhost:8000
-CORS_ORIGINS=http://localhost:3000
+CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
 ```
 
 Then restart/rebuild the web app because `NEXT_PUBLIC_*` values are embedded into the frontend build.
@@ -351,17 +413,21 @@ Then restart/rebuild the web app because `NEXT_PUBLIC_*` values are embedded int
 
 ### Investigation completes without valuation
 
-Configure `MARKET_BENCHMARK_URL` and preferably `MARKET_COMPARABLES_URL`. The application intentionally refuses to invent market values.
+Configure `NASS_QUICKSTATS_API_KEY` (or the custom `MARKET_BENCHMARK_URL`) and
+preferably `MARKET_COMPARABLES_URL`. The application intentionally refuses to invent
+market values. USDA provides a benchmark but not transaction-level comparables.
 
 ### Mireye is shown as unavailable
 
-Verify the URL, token, TLS certificate, and MCP tool discovery:
+Verify REST authentication without starting an investigation:
 
 ```bash
-curl -i "$MIREYE_MCP_URL"
+curl -i -H "Authorization: Bearer $MIREYE_API_TOKEN" \
+  "$MIREYE_API_URL/v1/meta/fields"
 ```
 
-The endpoint must support MCP JSON-RPC over HTTP; a normal REST property endpoint is not interchangeable.
+For MCP, verify that the URL ends in `/mcp`; `https://api.mireye.com` by itself
+is not the MCP endpoint. Restart the API after changing `.env`.
 
 ### OpenAI assessments do not appear
 
@@ -371,7 +437,7 @@ Confirm that `OPENAI_API_KEY` is in the root `.env`, the API process was restart
 
 Postgres initialization scripts run only for a new volume. Back up important data, then explicitly recreate the development volume, or apply the migration through your production migration process.
 
-## 9. Production checklist
+## 10. Production checklist
 
 Before a real deployment:
 

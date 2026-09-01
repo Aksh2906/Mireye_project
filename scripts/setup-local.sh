@@ -17,8 +17,9 @@ if ! command -v node >/dev/null 2>&1 || ! command -v npm >/dev/null 2>&1; then
 fi
 
 if [[ ! -f .env ]]; then
-  cp .env.example .env
-  echo "Created .env from .env.example. Add provider credentials when available."
+  touch .env
+  chmod 600 .env
+  echo "Created a private .env file. Add provider credentials from the README when available."
 fi
 
 if [[ ! -x .venv/bin/python ]]; then

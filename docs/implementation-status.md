@@ -4,7 +4,7 @@ All phases in the implementation plan have a working code path and automated acc
 
 | Phase | Delivered |
 |---|---|
-| 0 — Infrastructure | FastAPI and Next.js monorepo, Docker/PostGIS initialization, environment contract, CI, linting, tests, and health checks |
+| 0 — Infrastructure | FastAPI and Next.js monorepo, local SQLite initialization, environment contract, CI, linting, tests, and health checks |
 | 1 — Ingestion | Address, listing URL, and natural-language inputs normalize to the same property/investigation contract with claim extraction |
 | 2 — World model | Durable investigation/profile snapshots, claims, transition history, evidence provenance, relationships, agent/tool trace, and migration schema |
 | 3 — Mireye MCP | MCP initialization and discovery, context, quote and batch support, field normalization, geometry/scope guards, and raw provider references |
@@ -17,7 +17,7 @@ All phases in the implementation plan have a working code path and automated acc
 | 10 — Evaluation | 20 offline golden cases, metrics report, failure report, connector/unit/API/end-to-end acceptance tests |
 | 11 — Hardening | Safe failure behavior, optional bearer auth, CORS, rate limiting, request IDs/security headers, structured logs, retries, caching, and deployment configuration |
 
-External acceptance is configuration-dependent: a real Mireye property context, OpenAI specialist calls, market feeds, and a full Docker startup cannot be certified without provider credentials and a running Docker daemon. The application represents those dependencies explicitly and never fabricates substitute facts.
+External acceptance is configuration-dependent: real Mireye property context, OpenAI specialist calls, market feeds, and other licensed providers cannot be certified without their credentials and network access. The application represents those dependencies explicitly and never fabricates substitute facts.
 
 ## Agriculture Intelligence V2
 

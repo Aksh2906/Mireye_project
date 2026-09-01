@@ -1,4 +1,4 @@
-.PHONY: setup doctor dev api-dev web-dev dev-docker test lint eval
+.PHONY: setup doctor dev api-dev web-dev test lint eval
 
 setup:
 	./scripts/setup-local.sh
@@ -14,9 +14,6 @@ api-dev:
 
 web-dev:
 	npm --prefix apps/web run dev -- --hostname 127.0.0.1
-
-dev-docker:
-	docker compose up --build
 
 test:
 	PYTHONPATH=apps/api .venv/bin/pytest -q apps/api/tests

@@ -352,10 +352,3 @@ Add traceable provider data or sourced assumptions and rerun the affected analys
 - `scripts` — local setup, diagnostics, and development launch scripts
 - `SETUP_GUIDE.md` — focused local installation and troubleshooting guide
 
-## Security and scope
-
-- Never commit `.env`, `.env.example`, API keys, access tokens, or database credentials.
-- Rotate any credential that has been exposed in a message, log, screenshot, or commit.
-- Restrict CORS and add user authentication before an internet-facing deployment.
-- Use licensed data appropriate for the intended acquisition decision.
-- Treat this software as decision support, not an appraisal, legal survey, title opinion, tax opinion, lending commitment, or guarantee of agricultural performance.

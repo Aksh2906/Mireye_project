@@ -18,3 +18,35 @@ All phases in the implementation plan have a working code path and automated acc
 | 11 — Hardening | Safe failure behavior, optional bearer auth, CORS, rate limiting, request IDs/security headers, structured logs, retries, caching, and deployment configuration |
 
 External acceptance is configuration-dependent: a real Mireye property context, OpenAI specialist calls, market feeds, and a full Docker startup cannot be certified without provider credentials and a running Docker daemon. The application represents those dependencies explicitly and never fabricates substitute facts.
+
+## Agriculture Intelligence V2
+
+| V2 phase | Delivered path |
+|---|---|
+| Objective | Validated structured `BuyerObjective`, natural-language extraction, crop/livestock/dairy/grazing intent, risk and budget inputs, coordinate mode, and in-investigation objective updates |
+| Agent loop | Explicit hypotheses, candidate/executed actions, action VoI events, iteration and cost state, targeted Mireye field requests, stopping reason, and five-way verdict schema |
+| Agriculture | Crop registry, crop-history support, activity comparison, crop/grazing/intensity/infrastructure signals, and extension-safe activity models |
+| Economics | Conservative/base/optimistic deterministic scenarios, total investment, ROI, payback, break-even yield, dated/geographic assumptions, and refusal to calculate when required inputs are absent |
+| Hazards | Dynamic evidence detection and activity-specific agricultural consequence/materiality records; missing observations never imply absence |
+| Geometry/map | Polygon/MultiPolygon validation, ring normalization, geodesic acreage, claim divergence, evidence overlays, and human-readable map popups |
+| Listings/alternatives | Provider protocol, generic URL and mock adapters, permission-safe LandWatch/Land.com placeholders, explicit unavailable discovery response, and persisted alternative schema |
+| UX/reporting | Objective summary, hypothesis panel, agriculture cards, scenarios, hazards, evidence trace, map popups, buyer-context update, and expanded dossier |
+| Evaluation | V1 regression suite plus 20 V2 observable-behavior fixtures, V2 engine/API tests, and investigation behavior metrics including Decision-Relevant Evidence Ratio |
+
+Provider-dependent deep alternative search, authoritative parcel retrieval, live hazard feeds, and property-specific crop/livestock economics activate only when their real adapters and sourced data are configured. Their contracts and unavailable behavior are implemented; synthetic live results are intentionally not.
+
+## Decision Intelligence V3
+
+| V3 capability | Delivered path |
+|---|---|
+| Boundary and map | Persisted boundary provenance, listing/parcel/user priority, GeoJSON validation, claimed-acreage divergence, fit-to-boundary map, layer toggles, hazard/context overlays, and nearby markers |
+| Readable evidence | Shared evidence cards, labeled structured facts, source/freshness/confidence/limitations, linked geometry, and raw provider payloads confined to optional technical details |
+| Crops and other uses | Risk/evidence-aware crop ordering plus row crop, hay, grazing, cattle, dairy, sheep, goat, orchard, greenhouse, and mixed-use requirement records |
+| Investment economics | Editable financing/capex/working-capital inputs, multi-year cash flow, operating ROI, cash-on-cash, NPV, IRR, DSCR, payback/break-even values, and maximum defensible offer |
+| Acquisition policy | Deterministic buy, negotiate, investigate, pass, or insufficient-evidence decision integrated into final synthesis |
+| Disaster intelligence | Configured hazard adapter, source/vintage/geometry preservation, activity consequences, mitigation actions, explicit scenario stresses, and safe unavailable behavior |
+| Listings and alternatives | Configured authorized JSON feed, adaptive radius search, canonical-URL deduplication, screening, top-candidate deep agricultural analysis, map view, and subject-relative advantages/unknowns |
+| Product UI | Dedicated map, uses, economics, hazards, alternatives, evidence, and dossier surfaces with direct rerun actions |
+| Persistence and tests | V3 PostGIS migration, JSON world-model compatibility, deterministic engine/API fixtures, and provider-unavailable coverage |
+
+Live listing, parcel, hazard, Mireye, crop-economics, and market outputs remain dependent on authorized provider access and source data. The completed implementation reports those configuration gaps explicitly.

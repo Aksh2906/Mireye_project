@@ -4,8 +4,14 @@ import asyncio
 from datetime import UTC, datetime
 
 from app.agents.runtime import AgentRuntime
+from app.agriculture.engine import AgricultureOpportunityEngine, HazardIntelligenceEngine
+from app.agriculture.finance import InvestmentEconomicsEngine
 from app.config import get_settings
 from app.connectors.agriculture import AgricultureAdapter
+from app.connectors.economics import AgricultureEconomicsAdapter
+from app.connectors.geospatial import BoundaryService, BoundaryValidationError
+from app.connectors.hazards import HazardAdapter
+from app.connectors.listing_providers import configured_listing_provider
 from app.connectors.market import MarketAdapter
 from app.connectors.mireye import MireyeMCPAdapter
 from app.domain.models import (
@@ -14,13 +20,18 @@ from app.domain.models import (
     ClaimTransitionProposal,
     Decision,
     DiligenceRequest,
+    Evidence,
     EvidenceRelationship,
+    EvidenceSource,
+    ExecutedAction,
     InvestigationEvent,
     InvestigationState,
     InvestigationStatus,
     Materiality,
     NegotiationRecommendation,
+    SourceType,
     ToolCallArtifact,
+    ToolCost,
     ToolResult,
     Unknown,
     Verdict,
@@ -36,6 +47,8 @@ from app.investigation.engines import (
     ValueOfInformationEngine,
 )
 from app.investigation.input_resolver import InputResolver
+from app.investigation.v2 import ActionRegistry, HypothesisEngine
+from app.opportunities.engine import OpportunityDiscoveryEngine
 from app.tools.registry import validate_tool_call
 from app.world_model.repository import repository
 from app.world_model.transitions import apply_claim_transition
@@ -49,6 +62,9 @@ class InvestigationOrchestrator:
         self.mireye = MireyeMCPAdapter()
         self.agriculture = AgricultureAdapter()
         self.market = MarketAdapter()
+        self.economics_data = AgricultureEconomicsAdapter()
+        self.hazard_data = HazardAdapter()
+        self.discovery = OpportunityDiscoveryEngine(configured_listing_provider())
         self.enrichment = EnrichmentEngine()
         self.contradictions = ContradictionEngine()
         self.materiality = MaterialityEngine()
@@ -56,6 +72,12 @@ class InvestigationOrchestrator:
         self.valuation = ValuationEngine()
         self.unknown_engine = UnknownEngine()
         self.stability = DecisionStabilityEngine()
+        self.hypotheses = HypothesisEngine()
+        self.actions = ActionRegistry()
+        self.opportunities = AgricultureOpportunityEngine()
+        self.hazards = HazardIntelligenceEngine()
+        self.investment = InvestmentEconomicsEngine()
+        self.boundaries = BoundaryService()
 
     def event(self, state: InvestigationState, event_type: str, message: str, **data) -> None:
         state.events.append(InvestigationEvent(type=event_type, message=message, data=data))
@@ -69,15 +91,97 @@ class InvestigationOrchestrator:
             current = datetime.now(UTC).year
             years = list(range(current - 5, current))
             arguments = {"latitude": prop.latitude, "longitude": prop.longitude, "years": years}
+        elif name == "listing.search":
+            arguments = {
+                "latitude": prop.latitude,
+                "longitude": prop.longitude,
+                "radius_miles": state.user_objective.geography.max_distance_miles or 10,
+            }
         else:
             arguments = {"latitude": prop.latitude, "longitude": prop.longitude}
         validate_tool_call(name, arguments)
         if name == "mireye.fetch_context":
-            return await self.mireye.fetch_context(prop.latitude, prop.longitude)
+            activities = {item.value for item in state.user_objective.agricultural_activities}
+            fields = {"terrain", "slope", "land_cover", "roads", "access"}
+            if activities & {"row_crop", "dairy"} or state.user_objective.objective.value in {
+                "crop",
+                "maximize_profit",
+            }:
+                fields.update({"water", "climate", "flood", "infrastructure"})
+            if activities & {"grazing", "cattle"}:
+                fields.update({"pasture", "water", "hazards"})
+            try:
+                return await self.mireye.fetch_context(
+                    prop.latitude, prop.longitude, sorted(fields)
+                )
+            except TypeError:
+                # Compatibility for injected V1 adapters using the original two-argument contract.
+                return await self.mireye.fetch_context(prop.latitude, prop.longitude)
         if name == "agriculture.get_crop_history":
             return await self.agriculture.get_crop_history(prop.latitude, prop.longitude, years)
         if name == "agriculture.get_soil_context":
             return await self.agriculture.get_soil_context(prop.latitude, prop.longitude)
+        if name == "agriculture.get_economics":
+            return await self.economics_data.get_assumptions(
+                state=prop.state,
+                county=prop.county,
+                activities=[item.value for item in state.user_objective.agricultural_activities],
+                crops=[item.crop for item in state.crop_opportunities]
+                or [
+                    "corn",
+                    "soybeans",
+                    "wheat",
+                    "hay",
+                ],
+            )
+        if name == "hazard.get_context":
+            return await self.hazard_data.get_context(
+                prop.latitude,
+                prop.longitude,
+                list(HazardIntelligenceEngine.KEYWORDS),
+                state.boundary.geometry.model_dump(mode="json") if state.boundary else None,
+            )
+        if name == "listing.search":
+            alternatives, radii = await self.discovery.search(
+                prop.latitude,
+                prop.longitude,
+                state.user_objective,
+                float(state.user_objective.geography.max_distance_miles or 10),
+            )
+            state.alternatives = alternatives
+            state.searched_radii_miles = radii
+            observations = [
+                Evidence(
+                    source_type=SourceType.LISTING,
+                    source=EvidenceSource(
+                        publisher="Configured listing provider",
+                        dataset="Nearby agricultural listings",
+                        url=item.source_url,
+                    ),
+                    field_name="nearby_listing_candidate",
+                    value={
+                        "title": item.title,
+                        "price": item.price,
+                        "acreage": item.acreage,
+                        "distance_miles": item.distance_miles,
+                        "price_per_acre": item.price_per_acre,
+                    },
+                    geometry=item.location.model_dump(mode="json"),
+                    semantic_scope="nearby listing candidate",
+                    confidence=item.evidence_quality,
+                    limitations=["Listing claims require independent verification."],
+                    raw_reference={"alternative_id": str(item.id)},
+                )
+                for item in alternatives
+            ]
+            return ToolResult(
+                tool_name="listing.search",
+                success=bool(observations),
+                observations=observations,
+                limitations=[]
+                if observations
+                else ["The configured listing provider returned no matching candidates."],
+            )
         if name == "market.get_benchmark":
             return await self.market.get_benchmark(prop.state, prop.county)
         if name == "market.find_comparables":
@@ -85,6 +189,64 @@ class InvestigationOrchestrator:
         raise ValueError(f"Unsupported tool: {name}")
 
     def _analyze(self, state: InvestigationState) -> None:
+        if not state.boundary:
+            state.boundary = self.boundaries.resolve_from_state(state)
+        if (
+            not state.boundary
+            and state.property
+            and state.property.latitude is not None
+            and state.property.longitude is not None
+            and state.property.acreage is not None
+        ):
+            state.boundary = self.boundaries.generate_analysis_geometry(
+                state.property.latitude,
+                state.property.longitude,
+                state.property.acreage,
+            )
+        if not any(item.field_name == "boundary_area_acres" for item in state.evidence):
+            boundary = next(
+                (
+                    item
+                    for item in state.evidence
+                    if item.geometry
+                    and item.geometry.get("type") in {"Polygon", "MultiPolygon"}
+                    and (
+                        item.semantic_scope
+                        in {"property boundary", "property cultivated footprint"}
+                        or item.raw_reference.get("boundary_source")
+                    )
+                ),
+                None,
+            )
+            if boundary and boundary.geometry:
+                try:
+                    validated = self.boundaries.validate(boundary.geometry)
+                    state.evidence.append(
+                        Evidence(
+                            source_type=SourceType.DERIVED,
+                            source=EvidenceSource(
+                                publisher="Mireye Agriculture",
+                                dataset="Geodesic boundary calculation",
+                            ),
+                            field_name="boundary_area_acres",
+                            value=validated["area_acres"],
+                            unit="acres",
+                            geometry=validated["geometry"],
+                            semantic_scope="analysis geometry area",
+                            confidence=boundary.confidence,
+                            limitations=[
+                                "Calculated analysis area is not a legal survey or ownership determination."
+                            ],
+                            raw_reference={
+                                "derived_from": str(boundary.id),
+                                "boundary_source": "provided evidence geometry",
+                            },
+                        )
+                    )
+                except BoundaryValidationError as exc:
+                    limitation = f"Boundary validation unavailable: {exc}"
+                    if not state.boundary and limitation not in state.limitations:
+                        state.limitations.append(limitation)
         state.signals = self.enrichment.derive(state)
         state.contradictions = self.contradictions.detect(state)
         for item in state.contradictions:
@@ -149,6 +311,10 @@ class InvestigationOrchestrator:
                 )
         state.unknowns = self.unknown_engine.identify(state)
         state.valuation = self.valuation.calculate(state)
+        self.opportunities.evaluate(state)
+        self.hazards.evaluate(state)
+        self.investment.enrich(state)
+        self.hypotheses.update(state)
         state.decision_stability = self.stability.evaluate(state)
         relationships: list[EvidenceRelationship] = []
         for signal in state.signals:
@@ -215,6 +381,21 @@ class InvestigationOrchestrator:
             f"Selected {name}: {rationale}",
             **({"voi": voi} if voi is not None else {}),
         )
+        self.event(
+            state,
+            "tool.selected",
+            f"Selected {name} because it has the highest current decision value",
+            voi=voi,
+            rationale=rationale,
+        )
+        if voi is not None:
+            self.event(
+                state,
+                "voi.calculated",
+                f"Value of information for {name}: {voi:.3f}",
+                tool=name,
+                voi=voi,
+            )
         self.event(state, "tool.started", f"Running {name}")
         call_started = asyncio.get_running_loop().time()
         call = ToolCallArtifact(
@@ -230,6 +411,30 @@ class InvestigationOrchestrator:
         call.cost = result.cost
         call.evidence_ids = [item.id for item in result.observations]
         call.limitations = result.limitations
+        action = next((item for item in state.candidate_actions if item.target == name), None)
+        if action:
+            state.executed_actions.append(
+                ExecutedAction(
+                    action_id=action.id,
+                    tool_name=name,
+                    status=call.status,
+                    actual_cost=result.cost,
+                    evidence_ids=call.evidence_ids,
+                    completed_at=call.completed_at,
+                )
+            )
+        state.budget_state.estimated_used += result.cost
+        state.budget_state.tool_costs.append(
+            ToolCost(
+                tool=name,
+                estimated=action.estimated_cost if action else result.cost,
+                actual=result.cost,
+            )
+        )
+        if state.budget_state.max_credits is not None:
+            state.budget_state.remaining = max(
+                0, state.budget_state.max_credits - state.budget_state.estimated_used
+            )
         state.evidence.extend(result.observations)
         state.limitations.extend(result.limitations)
         self.event(
@@ -246,10 +451,20 @@ class InvestigationOrchestrator:
                 evidence_ids=[str(item.id) for item in result.observations],
             )
         self._analyze(state)
+        if state.signals:
+            self.event(
+                state,
+                "signal.derived",
+                f"Recalculated {len(state.signals)} provenance-linked signal(s)",
+                signals=[item.name for item in state.signals],
+            )
         specialist_name = {
             "mireye.fetch_context": "property_intelligence",
             "agriculture.get_crop_history": "agricultural_intelligence",
             "agriculture.get_soil_context": "agricultural_intelligence",
+            "agriculture.get_economics": "agricultural_intelligence",
+            "hazard.get_context": "agricultural_intelligence",
+            "listing.search": "market_valuation",
             "market.get_benchmark": "market_valuation",
             "market.find_comparables": "market_valuation",
         }[name]
@@ -275,6 +490,14 @@ class InvestigationOrchestrator:
                 "contradiction.detected",
                 f"Detected {len(state.contradictions)} evidence discrepancy or contradiction candidate(s)",
             )
+            self.event(
+                state,
+                "materiality.calculated",
+                "Calculated decision impact for detected contradictions",
+                high_materiality=sum(
+                    item.materiality == Materiality.HIGH for item in state.contradictions
+                ),
+            )
         repository.save(state)
         return result
 
@@ -290,6 +513,9 @@ class InvestigationOrchestrator:
             )
         )
         high_unknowns = [item for item in state.unknowns if item.materiality == Materiality.HIGH]
+        medium_unknowns = [
+            item for item in state.unknowns if item.materiality == Materiality.MEDIUM
+        ]
         buyer_mismatches: list[str] = []
         buyer = state.buyer_snapshot
         prop = state.property
@@ -315,11 +541,18 @@ class InvestigationOrchestrator:
                 and not high_unknowns
                 and not buyer_mismatches
             )
-            verdict = Verdict.ACQUIRE if supported else Verdict.DO_NOT_ACQUIRE
+            if supported:
+                verdict = Verdict.ACQUIRE_CONDITIONALLY if medium_unknowns else Verdict.ACQUIRE
+            elif buyer_mismatches or valuation.asking_price > valuation.high * 1.15:
+                verdict = Verdict.DO_NOT_ACQUIRE
+            elif high_unknowns and not high_contradictions:
+                verdict = Verdict.INSUFFICIENT_EVIDENCE
+            else:
+                verdict = Verdict.NEGOTIATE
             qualification = (
                 "Proceed with conditions"
                 if supported
-                else "Current price, buyer fit, or material uncertainty is not supported"
+                else "Resolve material uncertainty or improve transaction terms before proceeding"
             )
             summary = (
                 "The asking price falls within the evidence-backed indication and no unresolved high-materiality contradiction was detected."
@@ -331,11 +564,39 @@ class InvestigationOrchestrator:
                 0.85 if state.decision_stability and state.decision_stability.stable else 0.65,
             )
         else:
-            verdict = Verdict.DO_NOT_ACQUIRE
+            verdict = Verdict.INSUFFICIENT_EVIDENCE
             qualification = "Material uncertainty is unresolved"
             summary = "The available evidence cannot yet bound a defensible value, so acquisition is not supported at this time."
             confidence = 0.55 if state.evidence else 0.3
+        investment = state.investment_decision
+        if investment and investment.verdict != Verdict.INSUFFICIENT_EVIDENCE:
+            precedence = {
+                Verdict.ACQUIRE: 0,
+                Verdict.ACQUIRE_CONDITIONALLY: 1,
+                Verdict.NEGOTIATE: 2,
+                Verdict.INSUFFICIENT_EVIDENCE: 3,
+                Verdict.DO_NOT_ACQUIRE: 4,
+            }
+            verdict = (
+                investment.verdict
+                if verdict == Verdict.INSUFFICIENT_EVIDENCE
+                else max((verdict, investment.verdict), key=lambda item: precedence[item])
+            )
+            qualification = {
+                Verdict.ACQUIRE: "Agricultural economics support proceeding with normal diligence",
+                Verdict.ACQUIRE_CONDITIONALLY: "Resolve material operating or hazard uncertainty",
+                Verdict.NEGOTIATE: "Improve the acquisition price or terms",
+                Verdict.DO_NOT_ACQUIRE: "Agricultural returns do not support acquisition on current terms",
+                Verdict.INSUFFICIENT_EVIDENCE: "Material economic evidence is missing",
+            }[verdict]
+            summary = (
+                f"Agricultural investment result: {investment.label}. "
+                + (investment.rationale[0] if investment.rationale else "")
+            ).strip()
+            confidence = min(confidence, investment.evidence_confidence or confidence)
         reasons = [summary, *buyer_mismatches]
+        if investment:
+            reasons.extend(investment.rationale[:3])
         if critic.get("strongest_counterargument"):
             reasons.append(f"Critic: {critic['strongest_counterargument']}")
         state.decision = Decision(
@@ -345,9 +606,14 @@ class InvestigationOrchestrator:
             decision_summary=summary,
             critical_reasons=reasons,
             conditions=["Verify all P0 diligence items before closing"]
-            if verdict == Verdict.ACQUIRE
+            if verdict in {Verdict.ACQUIRE, Verdict.ACQUIRE_CONDITIONALLY, Verdict.NEGOTIATE}
             else [],
             unresolved_uncertainties=unresolved[:12],
+            alternatives_considered=[str(item.id) for item in state.alternatives],
+            recommended_actions=[f"Resolve: {item.question}" for item in high_unknowns[:5]],
+            economic_summary=next(
+                (item for item in state.economic_scenarios if item.name == "base"), None
+            ),
         )
         requests: list[DiligenceRequest] = []
         for claim in state.claims:
@@ -391,23 +657,32 @@ class InvestigationOrchestrator:
             )
         ]
 
-    async def run(self, investigation_id) -> None:
+    async def run(self, investigation_id, resume: bool = False) -> None:
         state = repository.get(investigation_id)
         if not state:
             return
         started = asyncio.get_running_loop().time()
         try:
             state.status = InvestigationStatus.RUNNING
+            state.termination_reason = None
+            if state.budget_state.max_credits is None:
+                state.budget_state.max_credits = self.settings.max_investigation_cost
+            if state.budget_state.max_credits is not None:
+                state.budget_state.remaining = max(
+                    0,
+                    state.budget_state.max_credits - state.budget_state.estimated_used,
+                )
             orchestrator_run = AgentRunArtifact(
                 agent_name="acquisition_orchestrator", status="running"
             )
             state.agent_runs.append(orchestrator_run)
             self.event(state, "investigation.started", "Investigation started")
-            await self.resolver.resolve(state)
+            if not resume:
+                await self.resolver.resolve(state)
             evidence_lookup = {str(item.id): item.id for item in state.evidence}
             for claim in state.claims:
                 source_evidence = evidence_lookup.get(claim.source_id)
-                if source_evidence:
+                if source_evidence and claim.state == ClaimState.UNKNOWN:
                     apply_claim_transition(
                         state,
                         ClaimTransitionProposal(
@@ -434,6 +709,25 @@ class InvestigationOrchestrator:
                 "claims.extracted",
                 f"Extracted {len(state.claims)} material seller or user claims",
             )
+            prior_hypothesis_ids = {item.id for item in state.hypotheses}
+            self.hypotheses.initialize(state)
+            proposed_hypotheses = await self.agent.propose_hypotheses(state)
+            existing_statements = {item.statement.casefold() for item in state.hypotheses}
+            state.hypotheses.extend(
+                item
+                for item in proposed_hypotheses
+                if item.statement.casefold() not in existing_statements
+            )
+            for hypothesis in state.hypotheses:
+                if hypothesis.id in prior_hypothesis_ids:
+                    continue
+                self.event(
+                    state,
+                    "hypothesis.created",
+                    hypothesis.statement,
+                    hypothesis_id=str(hypothesis.id),
+                    importance=hypothesis.importance,
+                )
             if (
                 not state.property
                 or state.property.latitude is None
@@ -462,10 +756,13 @@ class InvestigationOrchestrator:
                 "agriculture.get_crop_history",
                 "agriculture.get_soil_context",
             ]
-            if (
-                self.settings.market_benchmark_url
-                or self.settings.nass_quickstats_api_key
-            ):
+            if self.settings.agriculture_economics_url:
+                available.append("agriculture.get_economics")
+            if self.settings.hazard_api_url:
+                available.append("hazard.get_context")
+            if self.settings.listing_search_url:
+                available.append("listing.search")
+            if self.settings.market_benchmark_url or self.settings.nass_quickstats_api_key:
                 available.append("market.get_benchmark")
             else:
                 limitation = (
@@ -478,11 +775,15 @@ class InvestigationOrchestrator:
                 available.append("market.find_comparables")
             else:
                 limitation = (
-                    "MARKET_COMPARABLES_URL is not configured; comparable sales "
-                    "were not inferred."
+                    "MARKET_COMPARABLES_URL is not configured; comparable sales were not inferred."
                 )
                 if limitation not in state.limitations:
                     state.limitations.append(limitation)
+            if resume:
+                completed_tools = {
+                    item.tool_name for item in state.tool_calls if item.status == "completed"
+                }
+                available = [item for item in available if item not in completed_tools]
             completed: set[str] = set()
             turns = 0
             while (
@@ -500,12 +801,30 @@ class InvestigationOrchestrator:
                     )
                     break
                 candidates = await self.agent.propose_investigations(state, available)
+                state.candidate_actions = self.actions.build(candidates)
                 ranked = self.voi.rank(candidates)
                 if not ranked or ranked[0].value <= 0:
                     break
                 selected = ranked[0]
+                if (
+                    state.budget_state.remaining is not None
+                    and selected.cost > state.budget_state.remaining
+                ):
+                    state.termination_reason = (
+                        "highest-value remaining action exceeds the investigation cost budget"
+                    )
+                    self.event(
+                        state,
+                        "investigation.stopping",
+                        "Stopped before an action whose estimated cost exceeds the remaining budget",
+                        tool=selected.name,
+                        estimated_cost=selected.cost,
+                        remaining=state.budget_state.remaining,
+                    )
+                    break
                 available.remove(selected.name)
                 turns += 1
+                state.iteration += 1
                 await self._run_selected_tool(
                     state,
                     selected.name,
@@ -525,7 +844,20 @@ class InvestigationOrchestrator:
                         "investigation.stopping",
                         "Stopped evidence collection because the verdict is stable and no high-materiality unknown remains",
                     )
+                    state.termination_reason = (
+                        "remaining uncertainty is not decision-material and the verdict is stable"
+                    )
                     break
+
+            if not state.termination_reason:
+                if not available:
+                    state.termination_reason = (
+                        "all decision-relevant available tools were evaluated"
+                    )
+                elif turns >= self.settings.max_agent_turns:
+                    state.termination_reason = "investigation iteration budget reached"
+                else:
+                    state.termination_reason = "no positive-value investigation action remained"
 
             self._analyze(state)
             self.event(

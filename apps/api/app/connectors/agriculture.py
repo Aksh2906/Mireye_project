@@ -15,6 +15,7 @@ NON_AGRICULTURAL_CDL_CATEGORIES = {
     "developed/open space",
     "developed/low intensity",
     "developed/med intensity",
+    "developed/medium intensity",
     "developed/high intensity",
     "open water",
     "deciduous forest",
@@ -28,6 +29,15 @@ NON_AGRICULTURAL_CDL_CATEGORIES = {
 }
 
 
+def is_agricultural_category(category: str) -> bool:
+    normalized = category.strip().casefold()
+    return (
+        bool(normalized)
+        and normalized not in NON_AGRICULTURAL_CDL_CATEGORIES
+        and not normalized.startswith("developed/")
+    )
+
+
 def parse_cdl_result(payload: str) -> dict[str, object] | None:
     result = re.search(r"<Result>\s*\{(.+?)\}\s*</Result>", payload, re.IGNORECASE)
     if not result:
@@ -38,7 +48,7 @@ def parse_cdl_result(payload: str) -> dict[str, object] | None:
     if not code_match:
         return None
     category = category_match.group(1).strip() if category_match else "Unknown class"
-    agricultural = category.casefold() not in NON_AGRICULTURAL_CDL_CATEGORIES
+    agricultural = is_agricultural_category(category)
     return {"code": int(code_match.group(1)), "category": category, "is_agricultural": agricultural}
 
 

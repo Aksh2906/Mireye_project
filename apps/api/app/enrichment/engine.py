@@ -4,6 +4,7 @@ from collections import Counter
 from itertools import pairwise
 from typing import Any
 
+from app.connectors.agriculture import is_agricultural_category
 from app.domain.models import (
     DerivedSignal,
     InvestigationState,
@@ -24,9 +25,45 @@ class EnrichmentEngine:
         signals: list[DerivedSignal] = []
         signals.extend(self._crop_signals(state))
         signals.extend(self._seller_divergence(state))
+        signals.extend(self._boundary_divergence(state))
         signals.extend(self._physical_consistency(state))
         signals.extend(self._operational_context(state))
+        signals.extend(self._activity_fit(state))
+        signals.extend(self._infrastructure_burden(state))
+        signals.extend(self._hazard_exposure(state))
+        signals.extend(self._premium_justification(state))
+        signals.extend(self._alternative_delta(state))
         return signals
+
+    def _boundary_divergence(self, state: InvestigationState) -> list[DerivedSignal]:
+        claimed = state.property.acreage if state.property else None
+        areas = [
+            item
+            for item in state.evidence
+            if item.field_name == "boundary_area_acres" and isinstance(item.value, (int, float))
+        ]
+        if not claimed or not areas:
+            return []
+        area = max(areas, key=lambda item: item.confidence)
+        difference = float(area.value) - claimed
+        ratio = abs(difference) / claimed
+        return [
+            DerivedSignal(
+                name="Boundary area divergence",
+                value=round(difference, 2),
+                interpretation=f"The available boundary-derived area differs from claimed acreage by {difference:+.2f} acres.",
+                materiality=Materiality.HIGH
+                if ratio >= 0.1
+                else Materiality.MEDIUM
+                if ratio >= 0.05
+                else Materiality.LOW,
+                evidence_ids=[area.id],
+                method="Calculate geodesic polygon area and subtract claimed acreage.",
+                confidence=area.confidence,
+                applicable_objectives=["crop", "grazing", "investment", "maximize_profit"],
+                limitations=["Analysis geometry is not a survey or legal parcel determination."],
+            )
+        ]
 
     def _crop_signals(self, state: InvestigationState) -> list[DerivedSignal]:
         crop = [
@@ -38,9 +75,9 @@ class EnrichmentEngine:
             return []
         signals: list[DerivedSignal] = []
         classified = [
-            bool(item.value["is_agricultural"])
+            is_agricultural_category(str(item.value["category"]))
             for item in crop
-            if isinstance(item.value, dict) and "is_agricultural" in item.value
+            if isinstance(item.value, dict) and item.value.get("category")
         ]
         if classified:
             continuity = sum(classified) / len(classified)
@@ -197,6 +234,195 @@ class EnrichmentEngine:
                     ),
                     limitations=[
                         "This signal identifies relevant evidence; it does not establish legal access or water rights."
+                    ],
+                )
+            )
+        return signals
+
+    def _activity_fit(self, state: InvestigationState) -> list[DerivedSignal]:
+        crop = [item for item in state.evidence if item.source_type == SourceType.USDA_CDL]
+        physical = [
+            item
+            for item in state.evidence
+            if item.source_type in {SourceType.MIREYE, SourceType.USDA_SSURGO}
+        ]
+        if not crop or not physical:
+            return []
+        agricultural = [
+            item
+            for item in crop
+            if isinstance(item.value, dict)
+            and item.value.get("category")
+            and is_agricultural_category(str(item.value["category"]))
+        ]
+        categories = [
+            str(item.value.get("category", "")).casefold()
+            for item in crop
+            if isinstance(item.value, dict)
+        ]
+        pasture = sum(
+            any(word in value for word in ("pasture", "grass", "hay")) for value in categories
+        )
+        common_limitations = [
+            "Compatibility is not a profitability finding.",
+            "Property-wide applicability depends on reliable parcel geometry and compatible resolution.",
+        ]
+        signals = [
+            DerivedSignal(
+                name="Agricultural intensity potential",
+                value="MODERATE" if agricultural else "WEAK",
+                interpretation=f"Historical agricultural classification and {len(physical)} physical-context observation(s) provide a multi-source basis for activity screening.",
+                materiality=Materiality.HIGH,
+                evidence_ids=[item.id for item in agricultural + physical],
+                method="Combine historical agricultural classifications with independently sourced physical context; no opaque master score is used.",
+                confidence=min(
+                    0.75,
+                    sum(item.confidence for item in agricultural + physical)
+                    / max(1, len(agricultural + physical)),
+                ),
+                applicable_objectives=["crop", "grazing", "livestock", "maximize_profit"],
+                limitations=common_limitations,
+            )
+        ]
+        if agricultural:
+            signals.append(
+                DerivedSignal(
+                    name="Crop fit",
+                    value="SUPPORTED_FOR_DEEPER_REVIEW",
+                    interpretation="Repeated agricultural land-cover evidence plus physical context supports deeper crop-specific investigation.",
+                    materiality=Materiality.HIGH,
+                    evidence_ids=[item.id for item in agricultural + physical],
+                    method="Require agricultural history and independent physical context before advancing crop candidates.",
+                    confidence=min(0.8, len(agricultural) / max(1, len(crop))),
+                    applicable_objectives=["crop", "maximize_profit"],
+                    limitations=common_limitations,
+                )
+            )
+        if pasture:
+            signals.append(
+                DerivedSignal(
+                    name="Grazing opportunity",
+                    value="SUPPORTED_FOR_DEEPER_REVIEW",
+                    interpretation=f"Pasture, grass, or hay appears in {pasture} historical observation(s), with independent physical context available.",
+                    materiality=Materiality.HIGH,
+                    evidence_ids=[item.id for item in crop + physical],
+                    method="Combine pasture-like historical classes with physical context; stocking rate and water sufficiency remain unproven.",
+                    confidence=min(0.8, pasture / max(1, len(crop))),
+                    applicable_objectives=["grazing", "livestock"],
+                    limitations=common_limitations + ["This does not establish carrying capacity."],
+                )
+            )
+        return signals
+
+    def _infrastructure_burden(self, state: InvestigationState) -> list[DerivedSignal]:
+        relevant = [
+            item
+            for item in state.evidence
+            if any(
+                word in item.field_name.casefold()
+                for word in ("water", "irrig", "road", "access", "utility", "fence")
+            )
+        ]
+        claims = [item for item in state.claims if item.claim_type in {"irrigation", "access"}]
+        if not relevant and not claims:
+            return []
+        unresolved = [
+            item for item in claims if item.state not in {"SUPPORTED", "PARTIALLY_SUPPORTED"}
+        ]
+        return [
+            DerivedSignal(
+                name="Infrastructure burden",
+                value="UNCERTAIN" if unresolved else "EVIDENCE_PRESENT",
+                interpretation=f"{len(relevant)} context observation(s) and {len(unresolved)} unresolved infrastructure claim(s) affect readiness for the intended use.",
+                materiality=Materiality.HIGH if unresolved else Materiality.MEDIUM,
+                evidence_ids=[item.id for item in relevant],
+                method="Relate water, irrigation, access, utility, and fencing evidence to unresolved listing claims.",
+                confidence=max((item.confidence for item in relevant), default=0.3),
+                applicable_objectives=["crop", "grazing", "livestock", "dairy"],
+                limitations=[
+                    "Nearby infrastructure does not establish capacity, condition, permits, or legal rights."
+                ],
+            )
+        ]
+
+    def _hazard_exposure(self, state: InvestigationState) -> list[DerivedSignal]:
+        evidence = [
+            item
+            for item in state.evidence
+            if any(
+                word in item.field_name.casefold()
+                for word in (
+                    "flood",
+                    "fire",
+                    "drought",
+                    "heat",
+                    "storm",
+                    "hail",
+                    "erosion",
+                    "landslide",
+                )
+            )
+        ]
+        if not evidence:
+            return []
+        return [
+            DerivedSignal(
+                name="Hazard-adjusted agricultural exposure",
+                value="REQUIRES_ACTIVITY_REVIEW",
+                interpretation=f"{len(evidence)} hazard-context observation(s) may have different consequences for the buyer's candidate agricultural activities.",
+                materiality=Materiality.HIGH,
+                evidence_ids=[item.id for item in evidence],
+                method="Identify hazard evidence, then defer materiality to activity-specific consequence analysis and buyer risk tolerance.",
+                confidence=sum(item.confidence for item in evidence) / len(evidence),
+                applicable_objectives=["crop", "grazing", "livestock", "minimize_risk"],
+                limitations=[
+                    "A missing hazard observation is not evidence that the hazard is absent."
+                ],
+            )
+        ]
+
+    def _premium_justification(self, state: InvestigationState) -> list[DerivedSignal]:
+        if not state.alternatives or not state.listing or state.listing.asking_price is None:
+            return []
+        reviewed = [item for item in state.alternatives if item.price is not None]
+        if not reviewed:
+            return []
+        return [
+            DerivedSignal(
+                name="Premium-pricing justification",
+                value="COMPARISON_REQUIRED",
+                interpretation=f"{len(reviewed)} priced alternative(s) are available; any premium must be explained through usable area, required investment, risk, and sourced scenario economics.",
+                materiality=Materiality.HIGH,
+                evidence_ids=[],
+                method="Compare incremental acquisition price with evidence-backed incremental agricultural benefit; do not use an opaque weighted score.",
+                confidence=0.4,
+                applicable_objectives=["maximize_profit", "investment"],
+                limitations=[
+                    "A premium cannot be justified without comparable activity economics and equivalent evidence depth."
+                ],
+            )
+        ]
+
+    def _alternative_delta(self, state: InvestigationState) -> list[DerivedSignal]:
+        signals: list[DerivedSignal] = []
+        for alternative in state.alternatives:
+            if not (alternative.advantages or alternative.disadvantages):
+                continue
+            signals.append(
+                DerivedSignal(
+                    name="Alternative opportunity delta",
+                    value=str(alternative.id),
+                    interpretation=(
+                        f"The screened alternative has {len(alternative.advantages)} stated advantage(s), "
+                        f"{len(alternative.disadvantages)} disadvantage(s), and {len(alternative.unknowns)} material unknown(s) relative to the buyer objective."
+                    ),
+                    materiality=Materiality.HIGH,
+                    evidence_ids=[],
+                    method="Explain objective-specific advantages, disadvantages, and unknowns without converting them to a master score.",
+                    confidence=alternative.evidence_quality,
+                    applicable_objectives=["maximize_profit", "investment", "balanced"],
+                    limitations=[
+                        "Screened listing attributes are claims until independently investigated at equivalent depth."
                     ],
                 )
             )

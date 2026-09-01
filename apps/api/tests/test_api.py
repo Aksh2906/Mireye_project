@@ -23,9 +23,7 @@ class ApiTests(unittest.TestCase):
             },
         )
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(
-            response.headers["access-control-allow-origin"], "http://127.0.0.1:3000"
-        )
+        self.assertEqual(response.headers["access-control-allow-origin"], "http://127.0.0.1:3000")
 
     def test_cors_preflights_do_not_consume_rate_limit(self):
         headers = {

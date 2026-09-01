@@ -160,6 +160,9 @@ class EndToEndTests(unittest.IsolatedAsyncioTestCase):
                 "market_comparables_url": "https://market.test/comparables",
             }
         )
+        orchestrator.agent.settings = orchestrator.agent.settings.model_copy(
+            update={"openai_api_key": None}
+        )
         await orchestrator.run(state.id)
         result = repository.get(state.id)
         self.assertIsNotNone(result)

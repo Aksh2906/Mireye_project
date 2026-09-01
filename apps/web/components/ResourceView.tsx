@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { API, api } from "@/lib/api";
 import type { InvestigationRecord } from "@/lib/types";
+import { EvidenceCard, SignalCard, humanize } from "./EvidencePresentation";
 
 const money = (value: number | null | undefined) =>
   value == null ? "Unavailable" : `$${Math.round(value).toLocaleString()}`;
@@ -36,6 +37,8 @@ export default function ResourceView({
         <p className="eyebrow">Loading {title}</p>
       </div>
     );
+  const mireyeEvidence = state.evidence.filter((item) => item.source_type === "MIREYE");
+  const supportingEvidence = state.evidence.filter((item) => item.source_type !== "MIREYE");
   return (
     <div className="shell">
       <p>
@@ -50,7 +53,18 @@ export default function ResourceView({
       </div>
       <nav className="subnav">
         {(
-          ["evidence", "claims", "valuation", "strategy", "dossier"] as const
+          [
+            "map",
+            "uses",
+            "economics",
+            "hazards",
+            "alternatives",
+            "evidence",
+            "claims",
+            "valuation",
+            "strategy",
+            "dossier",
+          ] as const
         ).map((item) => (
           <Link
             className={item === resource ? "active" : ""}
@@ -63,40 +77,38 @@ export default function ResourceView({
       </nav>
       {resource === "evidence" && (
         <div className="stack">
+          <section className="panel evidence-hero">
+            <div className="section-title">
+              <div>
+                <p className="eyebrow">Physical-world intelligence</p>
+                <h2>Mireye intelligence</h2>
+              </div>
+              <span className="pill">{mireyeEvidence.length} observations</span>
+            </div>
+            <p className="lede compact-lede">
+              Human-readable physical context used to choose the next investigation. It is evidence—not a legal boundary, water-right determination, or final verdict.
+            </p>
+            {mireyeEvidence.length ? (
+              <div className="stack">
+                {mireyeEvidence.map((item) => <EvidenceCard item={item} featured key={item.id} />)}
+              </div>
+            ) : (
+              <div className="empty-state">
+                <b>Mireye evidence has not been returned.</b>
+                <p>The investigation will show an explicit provider limitation rather than substitute synthetic data.</p>
+              </div>
+            )}
+          </section>
           <section className="panel">
             <div className="section-title">
-              <h2>Evidence ledger</h2>
-              <span className="pill">{state.evidence.length} observations</span>
+              <div>
+                <p className="eyebrow">Independent sources</p>
+                <h2>Evidence ledger</h2>
+              </div>
+              <span className="pill">{supportingEvidence.length} observations</span>
             </div>
             <div className="evidence-grid">
-              {state.evidence.map((item) => (
-                <article className="evidence-card" key={item.id}>
-                  <p className="eyebrow">
-                    {item.source_type} · {Math.round(item.confidence * 100)}%
-                    confidence
-                  </p>
-                  <h3>{item.field_name.replaceAll("_", " ")}</h3>
-                  <p className="evidence-value">
-                    {typeof item.value === "object"
-                      ? JSON.stringify(item.value)
-                      : String(item.value)}{" "}
-                    {item.unit || ""}
-                  </p>
-                  <p className="muted">
-                    {item.source.publisher} — {item.source.dataset}
-                    {item.source.vintage ? ` · ${item.source.vintage}` : ""}
-                  </p>
-                  <p className="fine">
-                    Scope: {item.semantic_scope || "not specified"} · Spatial:{" "}
-                    {item.spatial_resolution || "not specified"}
-                  </p>
-                  {item.limitations.map((x) => (
-                    <div className="warning" key={x}>
-                      {x}
-                    </div>
-                  ))}
-                </article>
-              ))}
+              {supportingEvidence.map((item) => <EvidenceCard item={item} key={item.id} />)}
             </div>
           </section>
           <section className="panel">
@@ -105,26 +117,9 @@ export default function ResourceView({
               <span className="pill">{state.signals.length}</span>
             </div>
             {state.signals.length ? (
-              <table className="table">
-                <thead>
-                  <tr>
-                    <th>Signal</th>
-                    <th>Value</th>
-                    <th>Materiality</th>
-                    <th>Interpretation</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {state.signals.map((x) => (
-                    <tr key={x.id}>
-                      <td>{x.name}</td>
-                      <td>{String(x.value)}</td>
-                      <td>{x.materiality}</td>
-                      <td>{x.interpretation}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <div className="signal-grid">
+                {state.signals.map((signal) => <SignalCard signal={signal} key={signal.id} />)}
+              </div>
             ) : (
               <p className="muted">No derived signals yet.</p>
             )}
@@ -139,15 +134,15 @@ export default function ResourceView({
               <span className="pill">{state.claims.length} claims</span>
             </div>
             {state.claims.map((claim) => (
-              <article className="claim-row" key={claim.id}>
+              <article className="claim-row claim-card" key={claim.id}>
                 <div>
+                  <p className="eyebrow">{humanize(claim.claim_type)}</p>
                   <h3>{claim.claim_text}</h3>
                   <p className="muted">
-                    {claim.claim_type.replaceAll("_", " ")} ·{" "}
-                    {claim.materiality || "unscored"} materiality
+                    {claim.materiality ? `${humanize(claim.materiality)} decision materiality` : "Materiality pending"}
                   </p>
                 </div>
-                <span className="pill">{claim.state}</span>
+                <span className={`state-chip state-${claim.state.toLowerCase()}`}>{humanize(claim.state)}</span>
               </article>
             ))}
             {!state.claims.length && (
@@ -157,9 +152,9 @@ export default function ResourceView({
           <section className="panel">
             <h2>Transition history</h2>
             {state.claim_transitions.map((x) => (
-              <div className="trace-row" key={x.id}>
+              <div className="trace-row refined-trace" key={x.id}>
                 <b>
-                  {x.from_state} → {x.to_state}
+                  {humanize(x.from_state)} → {humanize(x.to_state)}
                 </b>
                 <span>{x.rationale}</span>
                 <time>{new Date(x.created_at).toLocaleString()}</time>
@@ -199,8 +194,8 @@ export default function ResourceView({
           <aside className="stack">
             <section className="panel">
               <h2>Decision stability</h2>
-              <div className="metric">
-                {state.decision_stability?.classification || "Unassessed"}
+              <div className="metric status-heading">
+                {state.decision_stability?.classification ? humanize(state.decision_stability.classification) : "Unassessed"}
               </div>
               <p className="muted">{state.decision_stability?.explanation}</p>
             </section>
@@ -258,7 +253,7 @@ export default function ResourceView({
             </h2>
             <p className="lede">{state.decision?.qualification}</p>
             <div
-              className={`verdict ${state.decision?.verdict === "ACQUIRE" ? "acquire" : "do-not-acquire"}`}
+              className={`verdict ${state.decision?.verdict === "ACQUIRE" || state.decision?.verdict === "ACQUIRE_CONDITIONALLY" ? "acquire" : state.decision?.verdict === "NEGOTIATE" || state.decision?.verdict === "INSUFFICIENT_EVIDENCE" ? "negotiate" : "do-not-acquire"}`}
             >
               {state.decision?.verdict || state.status}
             </div>

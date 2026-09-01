@@ -154,6 +154,15 @@ class EndToEndTests(unittest.IsolatedAsyncioTestCase):
         orchestrator.mireye = FakeMireye()
         orchestrator.agriculture = FakeAgriculture()
         orchestrator.market = FakeMarket()
+        orchestrator.settings = orchestrator.settings.model_copy(
+            update={
+                "market_benchmark_url": "https://market.test/benchmark",
+                "market_comparables_url": "https://market.test/comparables",
+            }
+        )
+        orchestrator.agent.settings = orchestrator.agent.settings.model_copy(
+            update={"openai_api_key": None}
+        )
         await orchestrator.run(state.id)
         result = repository.get(state.id)
         self.assertIsNotNone(result)

@@ -5,8 +5,20 @@ import { api } from "@/lib/api";
 import type { InvestigationRecord } from "@/lib/types";
 export default function History() {
   const [items, setItems] = useState<InvestigationRecord[]>([]);
+  const [error, setError] = useState("");
   useEffect(() => {
-    api<InvestigationRecord[]>("/investigations").then(setItems);
+    let cancelled = false;
+    api<InvestigationRecord[]>("/investigations")
+      .then((data) => {
+        if (!cancelled) setItems(data);
+      })
+      .catch((e) => {
+        if (!cancelled)
+          setError(e instanceof Error ? e.message : "Unable to load history");
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
   return (
     <div className="shell">
@@ -17,6 +29,7 @@ export default function History() {
         </div>
       </div>
       <div className="panel">
+        {error && <p className="error">Could not load history: {error}</p>}
         {items.length ? (
           <table className="table">
             <thead>

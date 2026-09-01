@@ -3,13 +3,14 @@ import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 
-type Mode = "address" | "listing_url" | "query";
+type Mode = "address" | "listing_url" | "query" | "location";
 type Profile = { id: string; name: string };
 const examples = {
   address: "123 County Road, Ames, Iowa",
   listing_url: "https://example.com/agricultural-listing",
   query:
     "I'm considering an 85-acre farm near Ames, IA listed for $1.2M. The seller says 70 acres are tillable with excellent drainage. I care about row-crop productivity and low flood risk.",
+  location: "42.0308, -93.6319",
 };
 export default function Home() {
   const router = useRouter();
@@ -19,6 +20,9 @@ export default function Home() {
   const [profile, setProfile] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [objective, setObjective] = useState("balanced");
+  const [risk, setRisk] = useState("moderate");
+  const [budget, setBudget] = useState("");
   useEffect(() => {
     api<Profile[]>("/buyer-profiles")
       .then(setProfiles)
@@ -42,6 +46,11 @@ export default function Home() {
             input_type: mode,
             input,
             buyer_profile_id: profile || null,
+            objective: {
+              objective,
+              risk_tolerance: risk,
+              budget: budget ? { acquisition_max: Number(budget) } : {},
+            },
           }),
         },
       );
@@ -89,6 +98,12 @@ export default function Home() {
           >
             Describe the deal
           </button>
+          <button
+            className={mode === "location" ? "active" : ""}
+            onClick={() => switchMode("location")}
+          >
+            Coordinates
+          </button>
         </div>
         <form onSubmit={submit}>
           <label>
@@ -96,7 +111,9 @@ export default function Home() {
               ? "Property and acquisition question"
               : mode === "address"
                 ? "Property address"
-                : "Public listing URL"}
+                : mode === "location"
+                  ? "Latitude, longitude"
+                  : "Public listing URL"}
           </label>
           {mode === "query" ? (
             <textarea
@@ -134,6 +151,33 @@ export default function Home() {
               </button>
             </div>
           </div>
+          <div className="objective-grid">
+            <div>
+              <label>Decision objective</label>
+              <select value={objective} onChange={(e) => setObjective(e.target.value)}>
+                <option value="balanced">Balanced</option>
+                <option value="maximize_profit">Maximize profit</option>
+                <option value="minimize_risk">Minimize risk</option>
+                <option value="crop">Crop strategy</option>
+                <option value="grazing">Grazing strategy</option>
+                <option value="livestock">Livestock strategy</option>
+                <option value="dairy">Dairy strategy</option>
+                <option value="investment">Investment</option>
+              </select>
+            </div>
+            <div>
+              <label>Risk tolerance</label>
+              <select value={risk} onChange={(e) => setRisk(e.target.value)}>
+                <option value="low">Low</option>
+                <option value="moderate">Moderate</option>
+                <option value="high">High</option>
+              </select>
+            </div>
+            <div>
+              <label>Acquisition budget (USD)</label>
+              <input type="number" min="1" value={budget} onChange={(e) => setBudget(e.target.value)} placeholder="Optional" />
+            </div>
+          </div>
           {error && <p className="error">{error}</p>}
         </form>
       </section>
@@ -155,8 +199,8 @@ export default function Home() {
         <div className="card">
           <h3>A decision you can act on</h3>
           <p>
-            A binary verdict, bounded value, prioritized diligence, and
-            evidence-linked negotiation strategy.
+            A clear acquire, conditional, negotiate, reject, or insufficient-evidence
+            verdict with prioritized diligence and evidence-linked strategy.
           </p>
         </div>
       </section>

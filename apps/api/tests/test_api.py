@@ -14,6 +14,27 @@ class ApiTests(unittest.TestCase):
     def test_health(self):
         self.assertEqual(self.client.get("/health").json(), {"status": "ok"})
 
+    def test_local_frontend_cors_preflight(self):
+        response = self.client.options(
+            "/api/investigations",
+            headers={
+                "Origin": "http://127.0.0.1:3000",
+                "Access-Control-Request-Method": "GET",
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.headers["access-control-allow-origin"], "http://127.0.0.1:3000")
+
+    def test_cors_preflights_do_not_consume_rate_limit(self):
+        headers = {
+            "Origin": "http://127.0.0.1:3000",
+            "Access-Control-Request-Method": "GET",
+        }
+        responses = [
+            self.client.options("/api/investigations", headers=headers) for _ in range(130)
+        ]
+        self.assertTrue(all(response.status_code == 200 for response in responses))
+
     def test_profile_roundtrip(self):
         created = self.client.post(
             "/api/buyer-profiles",

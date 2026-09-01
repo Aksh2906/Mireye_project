@@ -1,4 +1,4 @@
-# Mireye Agricultural Acquisition Intelligence Agent
+# Farm Acquire Implementation Plan
 ## Codex Enterprise End-to-End Implementation Specification
 
 **Status:** Build specification
@@ -8,7 +8,7 @@
 **Frontend:** Next.js + TypeScript
 **Backend:** Python + FastAPI
 **Database:** PostgreSQL + PostGIS
-**Deployment:** Docker-first, production-ready
+**Deployment:** Local-first, production-ready
 
 ---
 
@@ -1429,14 +1429,12 @@ mireye-agri-agent/
 │   ├── agent-contracts/
 │   └── shared/
 ├── infrastructure/
-│   ├── docker/
 │   └── migrations/
 ├── evaluation/
 │   ├── cases/
 │   ├── runners/
 │   └── reports/
-├── docs/
-└── docker-compose.yml
+└── docs/
 ```
 
 ---
@@ -2243,7 +2241,6 @@ The demo should visibly demonstrate the agent changing its investigation path.
 Build:
 
 - monorepo
-- Docker
 - environment configuration
 - PostgreSQL/PostGIS
 - FastAPI

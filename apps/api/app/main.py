@@ -6,7 +6,7 @@ from app.config import get_settings
 from app.middleware import ApiKeyMiddleware, RateLimitMiddleware, RequestContextMiddleware
 
 settings = get_settings()
-app = FastAPI(title="Mireye Agricultural Acquisition Intelligence", version="0.1.0")
+app = FastAPI(title="Farm Acquire", version="0.1.0")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[value.strip() for value in settings.cors_origins.split(",")],

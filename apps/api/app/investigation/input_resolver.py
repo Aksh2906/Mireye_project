@@ -5,13 +5,18 @@ import re
 from app.connectors.geocoder import Geocoder
 from app.connectors.listing import ListingAdapter
 from app.domain.models import (
+    ActivityCategory,
+    BuyerObjective,
     Claim,
     Evidence,
     EvidenceSource,
+    Geometry,
     InputType,
     InvestigationState,
     ListingArtifact,
+    ObjectiveType,
     Property,
+    RiskTolerance,
     SourceType,
 )
 
@@ -35,6 +40,9 @@ CLAIM_PATTERNS: list[tuple[str, re.Pattern[str]]] = [
         ),
     ),
 ]
+COORDINATE_PATTERN = re.compile(
+    r"(?P<lat>-?(?:[0-8]?\d(?:\.\d+)?|90(?:\.0+)?))\s*[, ]\s*(?P<lon>-?(?:1[0-7]\d(?:\.\d+)?|180(?:\.0+)?|\d?\d(?:\.\d+)?))"
+)
 
 
 def parse_number(value: str, suffix: str | None = None) -> float:
@@ -71,6 +79,64 @@ def extract_buyer_objectives(text: str) -> list[str]:
         if re.search(pattern, text, re.IGNORECASE):
             objectives.append(objective)
     return objectives
+
+
+def extract_buyer_objective(text: str) -> BuyerObjective:
+    lower = text.casefold()
+    objective = ObjectiveType.BALANCED
+    activities: list[ActivityCategory] = []
+    objective_patterns = [
+        (ObjectiveType.DAIRY, ActivityCategory.DAIRY, ("dairy",)),
+        (ObjectiveType.GRAZING, ActivityCategory.GRAZING, ("grazing", "pasture")),
+        (ObjectiveType.LIVESTOCK, ActivityCategory.CATTLE, ("cattle", "livestock")),
+        (ObjectiveType.CROP, ActivityCategory.ROW_CROP, ("crop", "corn", "soybean", "wheat")),
+    ]
+    for candidate, activity, keywords in objective_patterns:
+        if any(keyword in lower for keyword in keywords):
+            activities.append(activity)
+            if objective == ObjectiveType.BALANCED:
+                objective = candidate
+    if "maximize" in lower and any(word in lower for word in ("profit", "return")):
+        objective = ObjectiveType.MAXIMIZE_PROFIT
+    if "minimize risk" in lower or "lowest risk" in lower:
+        objective = ObjectiveType.MINIMIZE_RISK
+    risk = (
+        RiskTolerance.LOW
+        if re.search(r"\b(?:low risk|risk[- ]averse)\b", lower)
+        else RiskTolerance.HIGH
+        if re.search(r"\b(?:high risk|risk[- ]tolerant|aggressive)\b", lower)
+        else RiskTolerance.MODERATE
+    )
+    result = BuyerObjective(
+        objective=objective,
+        agricultural_activities=list(dict.fromkeys(activities)),
+        risk_tolerance=risk,
+        willingness_to_pay_premium=bool(re.search(r"\b(?:pay|consider) (?:a )?premium\b", lower)),
+    )
+    budget = re.search(
+        r"\b(?:budget|acquisition budget)(?:\s+is|\s+of|:)?\s*\$?([\d,.]+)\s*([mk])?",
+        text,
+        re.IGNORECASE,
+    )
+    if budget:
+        result.budget.acquisition_max = parse_number(budget.group(1), budget.group(2))
+    investment = re.search(
+        r"(?:another|spend|invest)\s+\$?([\d,.]+)\s*([mk])?\s+(?:on|in|improving|for)",
+        text,
+        re.IGNORECASE,
+    )
+    if investment:
+        result.infrastructure_investment_budget = parse_number(
+            investment.group(1), investment.group(2)
+        )
+    acreage_range = re.search(r"\b([\d,.]+)\s*(?:-|to)\s*([\d,.]+)\s*acres?\b", text, re.IGNORECASE)
+    if acreage_range:
+        result.acreage.minimum = parse_number(acreage_range.group(1))
+        result.acreage.maximum = parse_number(acreage_range.group(2))
+    distance = re.search(r"\b(?:within|up to)\s+([\d.]+)\s+miles?\b", text, re.IGNORECASE)
+    if distance:
+        result.geography.max_distance_miles = float(distance.group(1))
+    return result
 
 
 def extract_address_candidate(text: str) -> str | None:
@@ -122,6 +188,9 @@ class InputResolver:
 
         state.claims.extend(extract_claims(text, source_id))
         state.buyer_objectives = extract_buyer_objectives(text)
+        extracted_objective = extract_buyer_objective(text)
+        if state.user_objective == BuyerObjective():
+            state.user_objective = extracted_objective
         acreage_match = ACRE_PATTERN.search(text)
         acreage = parse_number(acreage_match.group(1)) if acreage_match else None
         price_match = PRICE_PATTERN.search(text)
@@ -138,12 +207,34 @@ class InputResolver:
         elif asking_price:
             state.listing.asking_price = asking_price
 
+        coordinate_match = COORDINATE_PATTERN.fullmatch(state.raw_input.strip())
         address = (
             state.raw_input
             if state.input_type == InputType.ADDRESS
             else extract_address_candidate(text)
         )
-        if address:
+        if coordinate_match and state.input_type in {InputType.LOCATION, InputType.QUERY}:
+            latitude = float(coordinate_match.group("lat"))
+            longitude = float(coordinate_match.group("lon"))
+            state.property = Property(
+                latitude=latitude,
+                longitude=longitude,
+                acreage=acreage,
+                geometry=Geometry(coordinates=[longitude, latitude]),
+            )
+            state.evidence.append(
+                Evidence(
+                    source_type=SourceType.USER_PROVIDED,
+                    source=EvidenceSource(publisher="User", dataset="Provided coordinate"),
+                    field_name="location",
+                    value={"latitude": latitude, "longitude": longitude},
+                    semantic_scope="user-provided point location",
+                    geometry={"type": "Point", "coordinates": [longitude, latitude]},
+                    confidence=0.9,
+                    limitations=["A point location does not establish a parcel boundary."],
+                )
+            )
+        elif address:
             prop, geocode_evidence, limitations = await self.geocoder.resolve(address)
             state.property = prop
             state.evidence.extend(geocode_evidence)

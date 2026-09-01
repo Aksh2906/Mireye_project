@@ -74,10 +74,28 @@ def evaluate_case(case: dict) -> dict:
 
 def main() -> None:
     cases = json.loads((ROOT / "cases" / "golden.json").read_text())
+    v2_cases = json.loads((ROOT / "cases" / "v2_agent.json").read_text())
+    required_v2_fields = {
+        "case_id",
+        "category",
+        "objective",
+        "known_evidence",
+        "expected_actions",
+        "material_uncertainties",
+        "expected_decision",
+        "acceptable_alternatives",
+    }
+    invalid_v2 = [
+        case["case_id"] for case in v2_cases if not required_v2_fields <= set(case)
+    ]
+    if len(v2_cases) < 20 or invalid_v2:
+        raise ValueError(f"V2 evaluation fixtures are incomplete: {invalid_v2}")
     results = [evaluate_case(case) for case in cases]
     report = {
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "case_count": len(results),
+        "v2_agent_fixture_count": len(v2_cases),
+        "v2_agent_categories": sorted({case["category"] for case in v2_cases}),
         "decision_accuracy": sum(x["passed"] for x in results) / len(results),
         "provenance_completeness": sum(x["provenance_complete"] for x in results)
         / len(results),
@@ -106,6 +124,7 @@ def main() -> None:
                 key: report[key]
                 for key in (
                     "case_count",
+                    "v2_agent_fixture_count",
                     "decision_accuracy",
                     "provenance_completeness",
                     "false_certainty_rate",

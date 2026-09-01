@@ -21,9 +21,18 @@ class Settings(BaseSettings):
     nass_quickstats_api_key: str | None = None
     market_benchmark_url: str | None = None
     market_comparables_url: str | None = None
+    agriculture_economics_url: str | None = None
+    agriculture_economics_token: str | None = None
+    listing_search_url: str | None = None
+    listing_api_token: str | None = None
+    parcel_api_url: str | None = None
+    parcel_api_token: str | None = None
+    hazard_api_url: str | None = None
+    hazard_api_token: str | None = None
     max_agent_turns: int = 12
     max_tool_calls: int = 30
     max_external_requests: int = 30
+    max_investigation_cost: float | None = None
     max_wall_clock_seconds: int = 180
     cors_origins: str = "http://localhost:3000,http://127.0.0.1:3000"
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")

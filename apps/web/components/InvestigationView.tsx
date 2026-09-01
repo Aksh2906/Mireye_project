@@ -4,11 +4,13 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import type { InvestigationRecord } from "@/lib/types";
-import MarkdownView from "./MarkdownView";
+import { EvidenceCard } from "./EvidencePresentation";
 const MapPanel = dynamic(() => import("./MapPanel"), { ssr: false });
 export default function InvestigationView({ id }: { id: string }) {
   const [state, setState] = useState<InvestigationRecord | null>(null);
   const [error, setError] = useState("");
+  const [buyerUpdate, setBuyerUpdate] = useState("");
+  const [updating, setUpdating] = useState(false);
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout>;
     let cancelled = false;
@@ -49,19 +51,17 @@ export default function InvestigationView({ id }: { id: string }) {
     );
   const decision = state.decision;
   const verdictClass =
-    decision?.verdict === "ACQUIRE"
+    decision?.verdict === "ACQUIRE" || decision?.verdict === "ACQUIRE_CONDITIONALLY"
       ? "acquire"
+      : decision?.verdict === "NEGOTIATE" || decision?.verdict === "INSUFFICIENT_EVIDENCE"
+        ? "negotiate"
       : decision
         ? "do-not-acquire"
         : "pending";
   const p = state.property;
   const valuation = state.valuation;
-  const mireyeReport = state.evidence.find(
-    (item) =>
-      item.source_type === "MIREYE" &&
-      item.field_name === "mireye_report" &&
-      typeof item.value === "string",
-  );
+  const cropOpportunities = state.crop_opportunities.slice(0, 4);
+  const mireyeEvidence = state.evidence.filter((item) => item.source_type === "MIREYE");
   return (
     <div className="shell">
       {error && (
@@ -102,8 +102,146 @@ export default function InvestigationView({ id }: { id: string }) {
           ))}
         </div>
       )}
+      <section className="panel objective-strip">
+        <div>
+          <span className="fine">OBJECTIVE</span>
+          <strong>{state.user_objective.objective.replaceAll("_", " ")}</strong>
+        </div>
+        <div>
+          <span className="fine">RISK TOLERANCE</span>
+          <strong>{state.user_objective.risk_tolerance}</strong>
+        </div>
+        <div>
+          <span className="fine">AGENT ITERATIONS</span>
+          <strong>{state.iteration}</strong>
+        </div>
+        <div>
+          <span className="fine">STOPPING BASIS</span>
+          <strong>{state.termination_reason || "Investigation in progress"}</strong>
+        </div>
+      </section>
+      <nav className="intelligence-nav" aria-label="Decision intelligence sections">
+        {[
+          ["map", "Boundary & map"],
+          ["uses", "Crops & uses"],
+          ["economics", "ROI & buy decision"],
+          ["hazards", "Disaster analysis"],
+          ["alternatives", "Nearby listings"],
+          ["evidence", "Readable evidence"],
+        ].map(([path, label]) => (
+          <Link href={`/investigation/${id}/${path}`} key={path}>{label} →</Link>
+        ))}
+      </nav>
+      {state.investment_decision && (
+        <section className="panel investment-banner">
+          <div>
+            <p className="eyebrow">Agricultural investment decision</p>
+            <h2>{state.investment_decision.label}</h2>
+            <p className="muted">{state.investment_decision.rationale[0]}</p>
+          </div>
+          <div>
+            <span className="fine">MAXIMUM DEFENSIBLE OFFER</span>
+            <div className="metric">
+              {state.investment_decision.maximum_defensible_offer == null
+                ? "Unavailable"
+                : `$${Math.round(state.investment_decision.maximum_defensible_offer).toLocaleString()}`}
+            </div>
+            <Link href={`/investigation/${id}/economics`}>Review economics →</Link>
+          </div>
+        </section>
+      )}
       <div className="dashboard">
         <div className="stack">
+          <section className="panel">
+            <div className="section-title">
+              <h2>Active hypotheses</h2>
+              <span className="pill">{state.hypotheses.length}</span>
+            </div>
+            {state.hypotheses.map((hypothesis) => (
+              <div className="hypothesis" key={hypothesis.id}>
+                <span className={`status-dot ${hypothesis.status}`} />
+                <div>
+                  <strong>{hypothesis.statement}</strong>
+                  <p className="muted">
+                    {hypothesis.status.replaceAll("_", " ")} · {Math.round(hypothesis.confidence * 100)}% evidence confidence
+                  </p>
+                </div>
+              </div>
+            ))}
+          </section>
+          <section className="panel">
+            <div className="section-title">
+              <h2>Agricultural opportunities</h2>
+              <span className="pill">Evidence-led</span>
+            </div>
+            <div className="opportunity-grid">
+              {cropOpportunities.map((crop) => (
+                <article className="opportunity-card" key={crop.crop}>
+                  <p className="eyebrow">{crop.recommendation.replaceAll("_", " ")}</p>
+                  <h3>{crop.crop}</h3>
+                  <p>Physical fit: <b>{crop.physical_fit}</b></p>
+                  <p>Historical support: <b>{crop.historical_support}</b></p>
+                  <p className="muted">Confidence {Math.round(crop.confidence * 100)}%</p>
+                </article>
+              ))}
+            </div>
+            <h3 style={{ marginTop: 22 }}>Activity comparison</h3>
+            <table className="table">
+              <thead><tr><th>Activity</th><th>Fit</th><th>Evidence</th></tr></thead>
+              <tbody>
+                {state.activity_opportunities.map((item) => (
+                  <tr key={item.activity}>
+                    <td>{item.activity.replaceAll("_", " ")}</td>
+                    <td>{item.fit}</td>
+                    <td>{Math.round(item.confidence * 100)}%</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </section>
+          {state.economic_scenarios.length > 0 && (
+            <section className="panel">
+              <div className="section-title"><h2>Scenario economics</h2><span className="pill">No single-point forecast</span></div>
+              <div className="scenario-row">
+                {state.economic_scenarios.map((scenario) => (
+                  <div className="scenario" key={scenario.name}>
+                    <p className="eyebrow">{scenario.name}</p>
+                    <div className="metric">{scenario.annual_operating_profit == null ? "Unknown" : `$${Math.round(scenario.annual_operating_profit).toLocaleString()}`}</div>
+                    <p className="muted">annual operating profit</p>
+                    <p>{scenario.roi == null ? "ROI unknown" : `${(scenario.roi * 100).toFixed(1)}% ROI`}</p>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+          {state.hazard_assessments.length > 0 && (
+            <section className="panel">
+              <div className="section-title"><h2>Activity-specific hazards</h2></div>
+              {state.hazard_assessments.map((hazard) => (
+                <div className="warning" key={hazard.hazard}>
+                  <b>{hazard.hazard}</b> · {hazard.exposure} exposure · {hazard.materiality.toLowerCase()} materiality
+                  <br /><small>{hazard.agricultural_consequences.join(" ")}</small>
+                </div>
+              ))}
+            </section>
+          )}
+          {state.alternatives.length > 0 && (
+            <section className="panel">
+              <div className="section-title"><h2>Nearby alternatives</h2><span className="pill">{state.alternatives.length}</span></div>
+              <div className="opportunity-grid">
+                {state.alternatives.slice(0, 3).map((alternative) => (
+                  <article className="opportunity-card" key={alternative.id}>
+                    <p className="eyebrow">{alternative.investigation_depth}</p>
+                    <h3>{alternative.title || "Candidate property"}</h3>
+                    <p>{alternative.acreage ? `${alternative.acreage} acres` : "Acreage unknown"} · {alternative.price ? `$${alternative.price.toLocaleString()}` : "Price unknown"}</p>
+                    {alternative.advantages.map((item) => <p key={item}>+ {item}</p>)}
+                    {alternative.disadvantages.map((item) => <p className="muted" key={item}>− {item}</p>)}
+                    <p className="fine">Evidence quality {Math.round(alternative.evidence_quality * 100)}%</p>
+                  </article>
+                ))}
+              </div>
+            </section>
+          )}
           <section className="panel">
             <div className="section-title">
               <h2>Investigation trace</h2>
@@ -118,13 +256,17 @@ export default function InvestigationView({ id }: { id: string }) {
               ))}
             </ol>
           </section>
-          {mireyeReport && typeof mireyeReport.value === "string" && (
+          {mireyeEvidence.length > 0 && (
             <section className="panel">
               <div className="section-title">
                 <h2>Mireye property intelligence</h2>
                 <Link href={`/investigation/${id}/evidence`}>Sources →</Link>
               </div>
-              <MarkdownView content={mireyeReport.value} />
+              <div className="stack">
+                {mireyeEvidence.slice(0, 2).map((item) => (
+                  <EvidenceCard item={item} featured key={item.id} />
+                ))}
+              </div>
             </section>
           )}
           <section className="panel">
@@ -190,6 +332,8 @@ export default function InvestigationView({ id }: { id: string }) {
                 latitude={p.latitude}
                 longitude={p.longitude}
                 evidence={state.evidence}
+                boundary={state.boundary}
+                alternatives={state.alternatives}
               />
             ) : (
               <p className="muted">
@@ -244,11 +388,31 @@ export default function InvestigationView({ id }: { id: string }) {
           </section>
           <section className="panel">
             <h2>Known limitations</h2>
-            {state.limitations.slice(-8).map((x) => (
-              <div className="warning" key={x}>
+            {Array.from(new Set(state.limitations)).slice(-8).map((x, index) => (
+              <div className="warning" key={`${index}-${x}`}>
                 {x}
               </div>
             ))}
+          </section>
+          <section className="panel">
+            <h2>Update buyer context</h2>
+            <p className="muted">Add information only when it can change the decision—for example, an irrigation budget or operating model.</p>
+            <textarea value={buyerUpdate} onChange={(event) => setBuyerUpdate(event.target.value)} placeholder="I can invest another $100,000 in irrigation…" />
+            <button
+              className="button"
+              style={{ marginTop: 10 }}
+              disabled={updating || !buyerUpdate.trim()}
+              onClick={async () => {
+                setUpdating(true);
+                try {
+                  await api(`/investigations/${id}/question`, { method: "POST", body: JSON.stringify({ answer: buyerUpdate }) });
+                  setBuyerUpdate("");
+                  window.location.reload();
+                } catch (e) {
+                  setError(e instanceof Error ? e.message : "Unable to update objective");
+                } finally { setUpdating(false); }
+              }}
+            >{updating ? "Updating…" : "Update & reconsider"}</button>
           </section>
         </aside>
       </div>

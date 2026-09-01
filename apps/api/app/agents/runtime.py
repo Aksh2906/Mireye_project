@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Any
 
 from app.config import get_settings
-from app.domain.models import AgentAssessment, InvestigationState
+from app.domain.models import AgentAssessment, Hypothesis, InvestigationState
 from app.investigation.engines import InvestigationCandidate
 
 PROMPT_DIR = Path(__file__).resolve().parents[1] / "prompts"
@@ -21,6 +21,8 @@ class AgentRuntime:
         return {
             "property": state.property.model_dump(mode="json") if state.property else None,
             "buyer": state.buyer_snapshot.model_dump(mode="json") if state.buyer_snapshot else None,
+            "objective": state.user_objective.model_dump(mode="json"),
+            "hypotheses": [item.model_dump(mode="json") for item in state.hypotheses],
             "claims": [item.model_dump(mode="json") for item in state.claims],
             "evidence": [
                 {
@@ -38,6 +40,11 @@ class AgentRuntime:
             "contradictions": [item.model_dump(mode="json") for item in state.contradictions],
             "unknowns": [item.model_dump(mode="json") for item in state.unknowns],
             "valuation": state.valuation.model_dump(mode="json") if state.valuation else None,
+            "agricultural_opportunities": [
+                item.model_dump(mode="json") for item in state.activity_opportunities
+            ],
+            "hazards": [item.model_dump(mode="json") for item in state.hazard_assessments],
+            "alternatives": [item.model_dump(mode="json") for item in state.alternatives],
             "limitations": state.limitations,
         }
 
@@ -138,6 +145,14 @@ class AgentRuntime:
                 0.03,
                 "Investigate soil and drainage context.",
             ),
+            "agriculture.get_economics": (
+                0.95,
+                1.0,
+                1.0,
+                0.75,
+                0.06,
+                "Retrieve sourced yield, price, cost, and infrastructure assumptions for activity economics.",
+            ),
             "market.get_benchmark": (
                 0.9,
                 1.0,
@@ -154,7 +169,42 @@ class AgentRuntime:
                 0.08,
                 "Test the benchmark against traceable comparable transactions.",
             ),
+            "hazard.get_context": (
+                0.88,
+                0.95,
+                0.9,
+                0.75,
+                0.05,
+                "Test activity-specific disaster exposure and downside economics.",
+            ),
+            "listing.search": (
+                0.7,
+                0.8,
+                0.8,
+                0.65,
+                0.08,
+                "Search nearby alternatives when they could change the acquisition decision.",
+            ),
         }
+        activities = {item.value for item in state.user_objective.agricultural_activities}
+        if activities & {"grazing", "cattle", "dairy"}:
+            defaults["mireye.fetch_context"] = (
+                0.92,
+                0.95,
+                0.9,
+                0.75,
+                0.08,
+                "Test terrain, water, access, hazard, and infrastructure assumptions for livestock use.",
+            )
+        if state.user_objective.objective.value in {"maximize_profit", "investment"}:
+            defaults["market.get_benchmark"] = (
+                0.95,
+                1.0,
+                1.0,
+                0.65,
+                0.05,
+                "Bound acquisition economics before deepening lower-impact physical questions.",
+            )
         return [
             InvestigationCandidate(
                 name=name,
@@ -168,6 +218,38 @@ class AgentRuntime:
             for name in available
             for v in [defaults[name]]
         ]
+
+    async def propose_hypotheses(self, state: InvestigationState) -> list[Hypothesis]:
+        schema = {
+            "type": "object",
+            "additionalProperties": False,
+            "required": ["hypotheses"],
+            "properties": {
+                "hypotheses": {
+                    "type": "array",
+                    "maxItems": 6,
+                    "items": {
+                        "type": "object",
+                        "additionalProperties": False,
+                        "required": ["statement", "importance", "materiality"],
+                        "properties": {
+                            "statement": {"type": "string"},
+                            "importance": {"type": "string", "enum": ["low", "medium", "high"]},
+                            "materiality": {"type": "number", "minimum": 0, "maximum": 1},
+                        },
+                    },
+                }
+            },
+        }
+        result = await self._structured(
+            "orchestrator.md",
+            {
+                "task": "Propose falsifiable, decision-relevant hypotheses only.",
+                "state": self._summary(state),
+            },
+            schema,
+        )
+        return [Hypothesis(**item) for item in result["hypotheses"]] if result else []
 
     async def critique(self, state: InvestigationState) -> dict[str, Any]:
         schema = {

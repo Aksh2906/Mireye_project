@@ -36,6 +36,7 @@ class WorldModelRepository:
             return [BuyerProfile.model_validate(row.payload) for row in rows]
 
     def save(self, state: InvestigationState) -> InvestigationState:
+        self._normalize_limitations(state)
         state.updated_at = utcnow()
         with SessionLocal.begin() as session:
             row = session.get(InvestigationRow, str(state.id))
@@ -59,14 +60,37 @@ class WorldModelRepository:
     def get(self, investigation_id: UUID) -> InvestigationState | None:
         with SessionLocal() as session:
             row = session.get(InvestigationRow, str(investigation_id))
-            return InvestigationState.model_validate(row.payload) if row else None
+            if not row:
+                return None
+            state = InvestigationState.model_validate(row.payload)
+            self._normalize_limitations(state)
+            return state
 
     def list(self) -> list[InvestigationState]:
         with SessionLocal() as session:
             rows = session.scalars(
                 select(InvestigationRow).order_by(InvestigationRow.created_at.desc())
             ).all()
-            return [InvestigationState.model_validate(row.payload) for row in rows]
+            states = [InvestigationState.model_validate(row.payload) for row in rows]
+            for state in states:
+                self._normalize_limitations(state)
+            return states
+
+    @staticmethod
+    def _normalize_limitations(state: InvestigationState) -> None:
+        obsolete_prefixes = (
+            "AGRICULTURE_ECONOMICS_URL is not configured",
+            "HAZARD_API_URL is not configured",
+        )
+        normalized: list[str] = []
+        for limitation in state.limitations:
+            if limitation.startswith(obsolete_prefixes):
+                continue
+            if state.boundary and limitation.startswith("Boundary validation unavailable:"):
+                continue
+            if limitation not in normalized:
+                normalized.append(limitation)
+        state.limitations = normalized
 
 
 repository = WorldModelRepository()

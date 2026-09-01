@@ -2,9 +2,7 @@ from app.config import get_settings
 from app.connectors.http import async_client
 from app.domain.models import Evidence, EvidenceSource, SourceType, ToolResult
 
-NASS_LAND_VALUE_SERIES = (
-    "AG LAND, INCL BUILDINGS - ASSET VALUE, MEASURED IN $ / ACRE"
-)
+NASS_LAND_VALUE_SERIES = "AG LAND, INCL BUILDINGS - ASSET VALUE, MEASURED IN $ / ACRE"
 
 
 def _nass_number(value: object) -> float | None:
@@ -86,9 +84,7 @@ class MarketAdapter:
                 limitations=[f"Market benchmark unavailable: {type(exc).__name__}"],
             )
 
-    async def _get_nass_benchmark(
-        self, state: str | None, county: str | None
-    ) -> ToolResult:
+    async def _get_nass_benchmark(self, state: str | None, county: str | None) -> ToolResult:
         settings = get_settings()
         if not state or not settings.nass_quickstats_api_key:
             return ToolResult(

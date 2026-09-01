@@ -103,6 +103,26 @@ class UnknownEngine:
                 Materiality.HIGH,
                 ["market.get_benchmark"],
             )
+        field_names = {item.field_name for item in state.evidence}
+        has_production = bool(
+            field_names
+            & {"yield_per_acre", "expected_yield", "production_per_unit", "milk_yield_per_head"}
+        )
+        has_price = bool(field_names & {"commodity_price", "price_per_unit"})
+        has_cost = bool(
+            field_names
+            & {"operating_cost_per_acre", "operating_cost_per_unit", "operating_cost_per_head"}
+        )
+        economics_is_material = bool(state.user_objective.agricultural_activities) or (
+            state.user_objective.objective.value
+            in {"maximize_profit", "crop", "dairy", "livestock", "grazing", "investment"}
+        )
+        if economics_is_material and not (has_production and has_price and has_cost):
+            add(
+                "What sourced production, price, and operating-cost assumptions support the proposed agricultural use?",
+                Materiality.HIGH,
+                ["agriculture.get_economics"],
+            )
         if not any(item.field_name == "comparable_value_per_acre" for item in state.evidence):
             add(
                 "Are there traceable comparable agricultural transactions?",
